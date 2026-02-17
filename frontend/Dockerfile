@@ -1,18 +1,51 @@
-FROM node:20-alpine
+# === Dependencies Stage ===
+FROM node:20-alpine AS deps
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
-# Copy application code
+# === Builder Stage ===
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Expose port
+# Set production environment for build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Build the application
+RUN npm run build
+
+# === Runtime Stage ===
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Setup non-root user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
+
+# Copy standalone output
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
 EXPOSE 3000
 
-# Run in development mode
-CMD ["npm", "run", "dev"]
+CMD ["node", "server.js"]

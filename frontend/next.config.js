@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   allowedDevOrigins: ['tonnam.pskwr.com'],
   async rewrites() {
     return [

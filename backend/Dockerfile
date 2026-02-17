@@ -33,12 +33,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the virtual environment from builder
-COPY --from=builder /app /app
+# Setup non-root user
+RUN groupadd --system --gid 1001 appuser \
+    && useradd --system --gid 1001 --uid 1001 --create-home appuser
+
+# Copy the application from builder
+COPY --from=builder --chown=appuser:appuser /app /app
 
 # Set PATH to use venv executables
 ENV PATH="/app/.venv/bin:$PATH"
 
+USER appuser
 WORKDIR /app
 
 EXPOSE 8000

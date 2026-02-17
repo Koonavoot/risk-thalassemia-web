@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 30, 41, 59;
+  --background-rgb: 248, 250, 252;
+  --navy-50: 248, 250, 252;
+  --navy-100: 241, 245, 249;
+  --navy-600: 30, 58, 138;
+  --navy-700: 30, 41, 82;
+  --navy-800: 15, 23, 42;
+  --navy-900: 2, 6, 23;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom form styling - Navy theme */
+.form-input {
+  @apply mt-1 block w-full rounded-lg border-slate-200 shadow-sm 
+         focus:border-navy-500 focus:ring-navy-500 sm:text-sm
+         border pr-4 py-3 transition-all duration-200
+         hover:border-slate-300;
+  padding-left: 1rem;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-slate-700;
+}
+
+.form-error {
+  @apply mt-1 text-sm text-red-500;
+}
+
+.btn-primary {
+  @apply inline-flex justify-center items-center rounded-lg bg-navy-600 px-6 py-3 
+         text-sm font-semibold text-white shadow-lg hover:bg-navy-700 
+         focus-visible:outline focus-visible:outline-2 
+         focus-visible:outline-offset-2 focus-visible:outline-navy-600
+         disabled:opacity-50 disabled:cursor-not-allowed
+         transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5;
+}
+
+.btn-secondary {
+  @apply inline-flex justify-center items-center rounded-lg bg-white px-6 py-3 
+         text-sm font-semibold text-navy-700 shadow-sm ring-1 ring-inset 
+         ring-slate-200 hover:bg-slate-50 hover:ring-slate-300
+         disabled:opacity-50 disabled:cursor-not-allowed
+         transition-all duration-200;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-8
+         transition-all duration-300 hover:shadow-md;
+}
+
+/* Gradient backgrounds */
+.gradient-navy {
+  @apply bg-gradient-to-br from-navy-800 via-navy-700 to-navy-900;
+}
+
+.gradient-navy-light {
+  @apply bg-gradient-to-br from-slate-50 to-blue-50;
+}

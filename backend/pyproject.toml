@@ -1,0 +1,18 @@
+[project]
+name = "risk-thalassemia-backend"
+version = "1.0.0"
+description = "API for predicting thalassemia risk based on parental blood values"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic>=1.18.4",
+    "fastapi>=0.129.0",
+    "joblib>=1.5.3",
+    "psycopg2-binary>=2.9.11",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.22",
+    "scikit-learn>=1.7.1",
+    "sqlalchemy>=2.0.46",
+    "uvicorn[standard]>=0.40.0",
+    "xgboost>=3.2.0",
+]

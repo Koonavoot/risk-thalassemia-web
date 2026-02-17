@@ -5,7 +5,7 @@ A web-based clinical decision support tool for predicting thalassemia risk in of
 ## Tech Stack
 
 - **Frontend**: Next.js 14 (React) with TypeScript
-- **Backend**: FastAPI (Python)
+- **Backend**: FastAPI (Python) with [uv](https://docs.astral.sh/uv/) package manager
 - **Database**: PostgreSQL
 - **ML Model**: XGBoost
 
@@ -32,7 +32,8 @@ Thalassemia_predict_project/
 │   │       └── history.py   # History endpoints
 │   ├── model/
 │   │   └── model.pkl        # XGBoost model (add your own)
-│   ├── requirements.txt
+│   ├── pyproject.toml       # Dependencies (managed by uv)
+│   ├── uv.lock              # Lockfile (deterministic installs)
 │   ├── Dockerfile
 │   └── init.sql
 │
@@ -77,6 +78,12 @@ Thalassemia_predict_project/
   - `probability >= 0.35` → Risk
   - `probability < 0.35` → No Risk
 
+## Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) — Python package manager (install: `curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- [Node.js](https://nodejs.org/) 18+ and npm
+- [Docker](https://www.docker.com/) (optional, for containerized setup)
+
 ## Quick Start
 
 ### Using Docker Compose
@@ -89,7 +96,7 @@ Thalassemia_predict_project/
 
 2. **Start all services**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. **Access the application**
@@ -97,41 +104,43 @@ Thalassemia_predict_project/
    - Backend API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
 
+4. **Stop services**
+   ```bash
+   docker compose down        # Stop all services
+   docker compose down -v     # Stop and remove volumes (deletes database data)
+   ```
+
 ### Manual Setup
 
 #### Backend
 
-1. **Create virtual environment**
+1. **Install dependencies**
    ```bash
    cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv sync
    ```
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set up PostgreSQL**
+2. **Set up PostgreSQL**
    ```bash
    # Create database
    createdb thalassemia_db
-   
+
    # Run init script
    psql -d thalassemia_db -f init.sql
    ```
 
-4. **Configure environment**
+3. **Configure environment**
    ```bash
    cp .env.example .env
    # Edit .env with your database credentials
    ```
 
-5. **Run the server**
+4. **Run the server**
    ```bash
-   uvicorn app.main:app --reload
+   uv run uvicorn app.main:app --reload
    ```
+
+> **macOS note**: XGBoost requires OpenMP runtime. Install it with `brew install libomp`.
 
 #### Frontend
 
@@ -149,18 +158,18 @@ Thalassemia_predict_project/
 ## API Endpoints
 
 ### Prediction
-- `POST /predict` - Make a prediction (without saving)
-- `POST /predict/save` - Save prediction to database
+- `POST /predict` — Make a prediction (without saving)
+- `POST /predict/save` — Save prediction to database
 
 ### History
-- `GET /history` - Get paginated history with search and sort
-- `GET /history/{id}` - Get specific prediction details
-- `DELETE /history/{id}` - Delete a prediction
+- `GET /history` — Get paginated history with search and sort
+- `GET /history/{id}` — Get specific prediction details
+- `DELETE /history/{id}` — Delete a prediction
 
 ## Validation Rules
 
 - Hb must be > 0
-- Hct must be between 0-100 (%)
+- Hct must be between 0–100 (%)
 - Date of birth must be in the past
 - DCIP must be "Positive" or "Negative"
 
@@ -171,36 +180,3 @@ Thalassemia_predict_project/
 ## License
 
 For medical/research use only.
-
-เสร็จก็
-# 1. หยุด Frontend - กด Ctrl+C ใน Terminal ที่รัน npm run dev
-
-# 2. หยุด Backend - กด Ctrl+C ใน Terminal ที่รัน uvicorn
-
-# 3. หยุด PostgreSQL container
-docker stop thalassemia_db
-
-# (Optional) ลบ container ถ้าไม่ใช้อีก
-docker rm thalassemia_db
-
-ถ้ารันแบบ Docker Compose
-# หยุดทุก services
-docker-compose down
-
-# หยุดและลบ volumes (ลบข้อมูลในฐานข้อมูลด้วย)
-docker-compose down -v
-
-ครั้งถัดไปทำแค่นี้
-# 1.เปิด Docker Desktop (ถ้าปิดไป)
-
-# 2. Start PostgreSQL container (ถ้าหยุดไว้)
-docker start thalassemia_db
-
-# 3. รัน Backend
-cd backend
-source venv/bin/activate   # เปิด venv
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# 4. รัน Frontend (เปิด Terminal ใหม่)
-cd frontend
-npm run dev

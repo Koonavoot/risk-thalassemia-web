@@ -1,31 +1,47 @@
-FROM python:3.11-slim
+# === Builder Stage ===
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies required for psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-RUN python -m venv /app/venv
-
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies in venv
-RUN /app/venv/bin/pip install --upgrade pip && \
-    /app/venv/bin/pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies (cached layer)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
 
 # Copy application code
-COPY . .
+COPY . /app
 
-# Expose port
+# Sync again to install the project itself
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
+
+# === Runtime Stage ===
+FROM python:3.12-slim-bookworm
+
+# Install runtime dependency for psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the virtual environment from builder
+COPY --from=builder /app /app
+
+# Set PATH to use venv executables
+ENV PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
 EXPOSE 8000
 
-# Set PATH to use venv
-ENV PATH="/app/venv/bin:$PATH"
-
-# Run the application using venv's uvicorn
-CMD ["/app/venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

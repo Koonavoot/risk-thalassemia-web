@@ -6,7 +6,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://tonnam-api.pskwr.com/:path*',
+        destination: '${process.env.NEXT_PUBLIC_API_URL}/:path*',
       },
     ];
   },

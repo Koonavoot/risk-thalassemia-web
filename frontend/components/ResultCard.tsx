@@ -22,7 +22,7 @@ export default function ResultCard({
   return (
     <div className="card mt-8 border-2 border-slate-200">
       <h3 className="text-xl font-semibold text-navy-800 mb-6 text-center">
-        Prediction Result
+        Screening Result
       </h3>
 
       <div className="text-center mb-6">
@@ -161,7 +161,7 @@ export default function ResultCard({
 
         {onReset && (
           <button onClick={onReset} className="btn-secondary">
-            New Prediction
+            New Screening
           </button>
         )}
       </div>

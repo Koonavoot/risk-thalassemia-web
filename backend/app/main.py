@@ -27,6 +27,9 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://risk-thalassemia-web.vercel.app",
+        "http://thalassemiaai.com/",
+        "http://www.thalassemiaai.com/",
+        "http://119.59.103.14:3000/"
     ],
     allow_credentials=True,
     allow_methods=["*"],

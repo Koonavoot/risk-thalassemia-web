@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", label: "Home" },
-  { href: "/predict", label: "Predict" },
+  { href: "/predict", label: "Assess" },
   { href: "/history", label: "History" },
   { href: "/contact", label: "Contact" },
 ];
@@ -29,9 +29,9 @@ export default function Navbar() {
               />
               <div className="hidden sm:block">
                 <span className="text-xl font-bold text-navy-800">
-                  ThalassemiaPredict
+                  ThalassemiaAI.com
                 </span>
-                <p className="text-xs text-slate-500">AI-Powered Screening</p>
+                <p className="text-xs text-slate-500">Severe Thalassemia Screening for Thai</p>
               </div>
             </Link>
           </div>

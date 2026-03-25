@@ -223,10 +223,10 @@ export default function PredictPage() {
       <div className="container mx-auto px-6 py-12">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-navy-800 mb-3">
-            Thalassemia Risk Prediction
+            Severe Thalassemia Screening
           </h1>
           <p className="text-slate-600 max-w-2xl mx-auto">
-            Enter blood test values for both parents to predict thalassemia risk in their offspring.
+            Enter the blood test results of the Thai couple to assess the risk of severe thalassemia in their child. 
           </p>
         </div>
 
@@ -272,7 +272,7 @@ export default function PredictPage() {
                 Processing...
               </span>
             ) : (
-              "Predict Risk"
+              "Assess Risk"
             )}
           </button>
         </div>

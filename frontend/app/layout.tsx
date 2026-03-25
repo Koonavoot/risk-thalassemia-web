@@ -27,15 +27,15 @@ export default function RootLayout({
             <div className="container mx-auto px-6">
               <div className="grid md:grid-cols-3 gap-8 mb-8">
                 <div>
-                  <h3 className="font-semibold text-lg mb-4">ThalassemiaPredict</h3>
+                  <h3 className="font-semibold text-lg mb-4">ThalassemiaAI.com</h3>
                   <p className="text-slate-400 text-sm leading-relaxed">
-                    AI-powered clinical decision support tool for thalassemia risk assessment.
+                    AI-powered disease screening tools for healthcare professionals to assess the risk of thalassemia.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-4">Quick Links</h3>
                   <ul className="space-y-2 text-slate-400 text-sm">
-                    <li><a href="/predict" className="hover:text-white transition-colors">Prediction</a></li>
+                    <li><a href="/predict" className="hover:text-white transition-colors">Assessment</a></li>
                     <li><a href="/history" className="hover:text-white transition-colors">History</a></li>
                     <li><a href="/contact" className="hover:text-white transition-colors">Contact</a></li>
                   </ul>
@@ -49,7 +49,7 @@ export default function RootLayout({
               </div>
               <div className="border-t border-navy-800 pt-8 text-center">
                 <p className="text-sm text-slate-500">
-                  © 2026 Thalassemia Risk Prediction System. For medical professional use only.
+                  © 2026 Severe Thalassemia Screening System. For medical professional use only.
                 </p>
               </div>
             </div>

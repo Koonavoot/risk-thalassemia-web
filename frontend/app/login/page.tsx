@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { setToken } from "@/lib/auth";
 
-export default function LoginPage() {
+// ====== Inner component ที่ใช้ useSearchParams (ต้องอยู่ใน Suspense) ======
+function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const from = searchParams.get("from") || "/predict";
@@ -174,5 +175,18 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// ====== Page component — wrap LoginForm ใน Suspense ======
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-br from-navy-800 via-navy-700 to-navy-600 flex items-center justify-center">
+                <div className="text-white text-lg animate-pulse">Loading...</div>
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     );
 }

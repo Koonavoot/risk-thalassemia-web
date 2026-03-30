@@ -1,4 +1,6 @@
 from datetime import date, datetime
+import logging
+import traceback
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
@@ -69,7 +71,8 @@ async def make_prediction(
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        logging.error(f"Prediction error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 
 @router.post(

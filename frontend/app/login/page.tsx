@@ -28,7 +28,7 @@ function LoginForm() {
                 { username, password }
             );
             setToken(response.data.access_token);
-            router.push(from);
+            window.location.href = from;  // hard navigate ให้ cookie ถูก send ใน request ใหม่
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 const detail = err.response?.data?.detail;

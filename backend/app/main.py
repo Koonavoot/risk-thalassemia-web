@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException, RequestValidationError
 import logging
 from sqlalchemy import text
 
@@ -28,9 +29,11 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://risk-thalassemia-web.vercel.app",
-        "http://thalassemiaai.com/",
-        "http://www.thalassemiaai.com/",
-        "http://119.59.103.14:3000/"
+        "http://thalassemiaai.com",
+        "https://thalassemiaai.com",
+        "http://www.thalassemiaai.com",
+        "https://www.thalassemiaai.com",
+        "http://119.59.103.14:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -43,7 +46,17 @@ app.include_router(predict.router)
 app.include_router(history.router)
 
 
-# Global exception handler
+# HTTPException handler — pass through as-is (401, 403, 404, etc.)
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=getattr(exc, "headers", None) or {},
+    )
+
+
+# Global handler for truly unexpected errors only
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle all unhandled exceptions."""

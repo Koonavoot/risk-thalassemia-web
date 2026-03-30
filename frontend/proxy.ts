@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/**
- * Next.js Middleware: protect /predict and /history routes.
- * If no JWT cookie is present, redirect to /login.
- */
 const PROTECTED_PATHS = ["/predict", "/history"];
 const TOKEN_KEY = "thal_access_token";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     const isProtected = PROTECTED_PATHS.some(

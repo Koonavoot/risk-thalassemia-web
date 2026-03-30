@@ -87,7 +87,7 @@ function LoginForm() {
                                     required
                                     autoComplete="username"
                                     placeholder="Enter your username"
-                                    className="form-input pl-10"
+                                    className="block w-full rounded-lg border border-slate-200 pl-10 pr-4 py-3 text-sm shadow-sm transition-all duration-200 hover:border-slate-300 focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none"
                                 />
                             </div>
                         </div>
@@ -112,7 +112,7 @@ function LoginForm() {
                                     required
                                     autoComplete="current-password"
                                     placeholder="Enter your password"
-                                    className="form-input pl-10 pr-10"
+                                    className="block w-full rounded-lg border border-slate-200 pl-10 pr-10 py-3 text-sm shadow-sm transition-all duration-200 hover:border-slate-300 focus:border-navy-500 focus:ring-1 focus:ring-navy-500 focus:outline-none"
                                 />
                                 <button
                                     type="button"

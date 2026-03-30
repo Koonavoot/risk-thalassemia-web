@@ -99,3 +99,27 @@ class ErrorResponse(BaseModel):
     """Schema for error response."""
     error: str
     detail: Optional[str] = None
+
+
+# --- Auth Schemas ---
+
+class LoginRequest(BaseModel):
+    """Schema for login request."""
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1)
+
+
+class TokenResponse(BaseModel):
+    """Schema for JWT token response."""
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    """Schema for user info response."""
+    id: int
+    username: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True

@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, asc
 
 from app.database import get_db
-from app.models import Prediction
+from app.models import Prediction, User
 from app.schemas import PaginatedHistory, HistoryItem, ErrorResponse
+from app.security import get_current_user
 
 router = APIRouter(prefix="/history", tags=["history"])
 
@@ -23,7 +24,8 @@ async def get_history(
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search by patient ID"),
     sort_order: Literal["asc", "desc"] = Query("desc", description="Sort order by date"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get paginated prediction history.
@@ -102,7 +104,8 @@ async def get_history(
 )
 async def get_prediction_detail(
     prediction_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get detailed information about a specific prediction.
@@ -151,7 +154,8 @@ async def get_prediction_detail(
 )
 async def delete_prediction(
     prediction_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Delete a prediction record.

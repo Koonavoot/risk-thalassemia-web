@@ -12,7 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first (cache layer)
 COPY requirements.txt .
 
-# Install dependencies
+# Install PyTorch CPU-only FIRST (separate layer for better caching)
+# Using --index-url to get the smaller CPU-only build (~260MB vs 2GB GPU)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

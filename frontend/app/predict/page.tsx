@@ -7,6 +7,7 @@ import { z } from "zod";
 import axios from "axios";
 import { FormInput, FormSelect } from "@/components/FormInput";
 import ResultCard from "@/components/ResultCard";
+import { authHeaders } from "@/lib/auth";
 
 // Validation schema
 const parentSchema = z.object({
@@ -21,8 +22,8 @@ const parentSchema = z.object({
   hct: z.coerce.number().min(0, "Hct must be >= 0").max(100, "Hct must be <= 100"),
   mcv: z.coerce.number().min(0, "MCV must be >= 0"),
   mch: z.coerce.number().min(0, "MCH must be >= 0"),
-  dcip: z.enum(["Positive", "Negative"], { 
-    required_error: "DCIP result is required" 
+  dcip: z.enum(["Positive", "Negative"], {
+    required_error: "DCIP result is required"
   }),
 });
 
@@ -70,7 +71,9 @@ export default function PredictPage() {
     setIsSaved(false);
 
     try {
-      const response = await axios.post<PredictionResult>("/api/predict", data);
+      const response = await axios.post<PredictionResult>("/api/predict", data, {
+        headers: authHeaders(),
+      });
       setPredictionResult(response.data);
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -95,6 +98,8 @@ export default function PredictPage() {
         ...data,
         result: predictionResult.result,
         probability: predictionResult.probability,
+      }, {
+        headers: authHeaders(),
       });
       setIsSaved(true);
     } catch (err) {
@@ -125,11 +130,10 @@ export default function PredictPage() {
     <div className="card border border-slate-200">
       <h3 className="text-lg font-semibold text-navy-800 mb-6 flex items-center">
         <span
-          className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-lg ${
-            type === "father"
+          className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-lg ${type === "father"
               ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
               : "bg-gradient-to-br from-pink-500 to-pink-600 text-white"
-          }`}
+            }`}
         >
           {type === "father" ? "♂" : "♀"}
         </span>
@@ -226,69 +230,69 @@ export default function PredictPage() {
             Severe Thalassemia Screening
           </h1>
           <p className="text-slate-600 max-w-2xl mx-auto">
-            Enter the blood test results of the Thai couple to assess the risk of severe thalassemia in their child. 
+            Enter the blood test results of the Thai couple to assess the risk of severe thalassemia in their child.
           </p>
         </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid lg:grid-cols-2 gap-6 mb-6">
-          <ParentForm type="father" errors={errors.father} />
-          <ParentForm type="mother" errors={errors.mother} />
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700">{error}</p>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <ParentForm type="father" errors={errors.father} />
+            <ParentForm type="mother" errors={errors.mother} />
           </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-primary text-lg px-8 py-3"
+            >
+              {isLoading ? (
+                <span className="flex items-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                "Assess Risk"
+              )}
+            </button>
+          </div>
+        </form>
+
+        {predictionResult && (
+          <ResultCard
+            result={predictionResult.result}
+            probability={predictionResult.probability}
+            probabilityPercent={predictionResult.probability_percent}
+            onSave={handleSave}
+            onReset={handleReset}
+            isSaving={isSaving}
+            isSaved={isSaved}
+          />
         )}
-
-        <div className="flex justify-center">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="btn-primary text-lg px-8 py-3"
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              "Assess Risk"
-            )}
-          </button>
-        </div>
-      </form>
-
-      {predictionResult && (
-        <ResultCard
-          result={predictionResult.result}
-          probability={predictionResult.probability}
-          probabilityPercent={predictionResult.probability_percent}
-          onSave={handleSave}
-          onReset={handleReset}
-          isSaving={isSaving}
-          isSaved={isSaved}
-        />
-      )}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Prediction
+from app.models import Prediction, User
 from app.schemas import (
     PredictionRequest,
     PredictionResult,
@@ -11,7 +11,8 @@ from app.schemas import (
     PredictionResponse,
     ErrorResponse
 )
-from app.predictor import predictor, MODEL_VERSION, THRESHOLD
+from app.predictor import predictor, MODEL_VERSION
+from app.security import get_current_user
 
 router = APIRouter(prefix="/predict", tags=["predict"])
 
@@ -31,7 +32,10 @@ def calculate_age(dob: date) -> int:
         500: {"model": ErrorResponse}
     }
 )
-async def make_prediction(request: PredictionRequest):
+async def make_prediction(
+    request: PredictionRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     Make a thalassemia risk prediction based on parent blood values.
     
@@ -56,7 +60,7 @@ async def make_prediction(request: PredictionRequest):
             result=result,
             probability=probability,
             probability_percent=round(probability * 100, 2),
-            threshold_used=THRESHOLD,
+            threshold_used=predictor.threshold,
             model_version=MODEL_VERSION
         )
     
@@ -78,7 +82,8 @@ async def make_prediction(request: PredictionRequest):
 )
 async def save_prediction(
     request: PredictionSaveRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Save a prediction result to the database.

@@ -5,6 +5,17 @@ from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 
 
+class User(Base):
+    """Database model for authenticated users."""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+
 class Prediction(Base):
     """Database model for thalassemia predictions."""
     __tablename__ = "predictions"

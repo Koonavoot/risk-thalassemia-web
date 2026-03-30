@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.database import engine, Base
 from app.routes import predict, history
+from app.routes import auth
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +38,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(predict.router)
 app.include_router(history.router)
 

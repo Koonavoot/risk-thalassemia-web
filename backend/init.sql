@@ -2,6 +2,27 @@
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- ======================
+-- Users table (for auth)
+-- ======================
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Default users (password hashed with bcrypt 12 rounds)
+-- admin     → ThalAdmin@2026
+-- doctor    → ThalDoc@2026
+-- doctor_01 → ThallasAI01.
+INSERT INTO users (username, hashed_password) VALUES
+    ('admin',     '$2b$12$APsnTGopfS2VTwsvw6aZ8e2Zl76dvEGZ3NP2oILt1i6qFqHUnjP0G'),
+    ('doctor',    '$2b$12$gXFR3XhhRR34rSXCzONJBOdF2L8mOpysdTuCdNRYxcyfh8w6grXj2'),
+    ('doctor_01', '$2b$12$KVLv5.4dL12u7JopAMAdU.kqd5huOHAsjgt2cCuTO66MtxqDyIV5y')
+ON CONFLICT (username) DO NOTHING;
+
 -- Create predictions table
 CREATE TABLE IF NOT EXISTS predictions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

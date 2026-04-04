@@ -364,7 +364,47 @@ ON CONFLICT (username) DO NOTHING;"
 
 ---
 
+## ส่วนที่ 5 — การติดตั้ง HTTPS (SSL Certificate)
+
+การเชื่อมต่อทั้งหมดถูกเข้ารหัสผ่าน HTTPS เพื่อความปลอดภัยของข้อมูล (รหัสผ่าน และ ข้อมูลสุขภาพ) โดยใช้ Let's Encrypt (Certbot) บน Nginx ของ AlmaLinux VPS.
+
+### คำสั่งที่ใช้และความหมาย:
+
+1. **ติดตั้ง EPEL Repository**
+   ```bash
+   dnf install -y epel-release
+   ```
+   **ความหมาย:** ติดตั้ง Extra Packages for Enterprise Linux (EPEL) repo เพราะแพ็กเกจอย่าง `certbot` ไม่มีใน repository มาตรฐานของ AlmaLinux
+   **ผลลัพธ์:** ติดตั้งสำเร็จ ทำให้ OS รู้จักแพ็กเกจ certbot
+
+2. **ติดตั้ง Certbot และ Nginx Plugin**
+   ```bash
+   dnf install -y certbot python3-certbot-nginx
+   ```
+   **ความหมาย:** ติดตั้งตัวจัดการ Certificate (Certbot) และ Plugin สำหรับให้ Certbot เข้าไปแก้ไขไฟล์คอนฟิกของ Nginx ให้รองรับ HTTPS อัตโนมัติ
+   **ผลลัพธ์:** ติดตั้งเครื่องมือเสร็จสิ้น พร้อมออก SSL
+
+3. **ขอและติดตั้ง SSL Certificate**
+   ```bash
+   certbot --nginx -d thalassemiaai.com -d www.thalassemiaai.com
+   ```
+   **ความหมาย:** 
+   - `--nginx`: บอก Certbot ให้ตรวจสอบและแก้ไข Nginx config โดยอัตโนมัติ
+   - `-d ...`: ระบุชื่อโดเมนที่ต้องการขอ SSL (ทั้งแบบไม่มี www และมี www)
+   - *หมายเหตุ: ต้องกรอกอีเมลเพื่อรับการแจ้งเตือนจาก Let's Encrypt และกดยอมรับ Terms of Service (Y)*
+
+   **ผลลัพธ์ที่ได้จากการรันคำสั่ง:**
+   - ได้รับ Certificate บันทึกไว้ที่ `/etc/letsencrypt/live/thalassemiaai.com/fullchain.pem`
+   - ได้รับ Private Key บันทึกไว้ที่ `/etc/letsencrypt/live/thalassemiaai.com/privkey.pem`
+   - Certificate จะหมดอายุในวันที่ **28 มิถุนายน 2026** (90 วันหล้งจากออก)
+   - Certbot បានสร้างระบบต่ออายุอัตโนมัติ (auto-renewal) ไว้ให้เป็นเบื้องหลังแล้ว
+   - Certbot เข้าไปแก้ `/etc/nginx/conf.d/thalassemia.conf` ให้รองรับ port 443 (HTTPS) สำเร็จ
+   - เว็บไซต์เข้าใช้งานผ่าน **https://thalassemiaai.com** ได้แล้ว
+
+---
+
 ## ⚠️ สิ่งที่ต้องทำหลัง Deploy
+
 
 - [ ] เปลี่ยน `SECRET_KEY` ใน `docker-compose.yml` เป็นค่า random จริงๆ ก่อน go-live
 - [ ] ทดสอบ login ด้วย user ทั้ง 3 คน

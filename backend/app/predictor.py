@@ -17,89 +17,47 @@ from typing import Tuple
 # Model Architecture — must match the architecture used during training
 # ---------------------------------------------------------------------------
 
-class MultiHeadSelfAttention(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, dropout: float = 0.1):
-        super().__init__()
-        assert d_model % n_heads == 0
-        self.n_heads = n_heads
-        self.d_k = d_model // n_heads
-        self.qkv = nn.Linear(d_model, 3 * d_model)
-        self.out_proj = nn.Linear(d_model, d_model)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        B, T, D = x.shape
-        qkv = self.qkv(x).reshape(B, T, 3, self.n_heads, self.d_k)
-        qkv = qkv.permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[2]
-        scale = self.d_k ** -0.5
-        attn = (q @ k.transpose(-2, -1)) * scale
-        attn = attn.softmax(dim=-1)
-        attn = self.dropout(attn)
-        out = (attn @ v).transpose(1, 2).reshape(B, T, D)
-        return self.out_proj(out)
-
-
-class TransformerBlock(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, dropout: float = 0.1):
-        super().__init__()
-        self.norm1 = nn.LayerNorm(d_model)
-        self.attn = MultiHeadSelfAttention(d_model, n_heads, dropout)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.ff = nn.Sequential(
-            nn.Linear(d_model, d_model * 4),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(d_model * 4, d_model),
-            nn.Dropout(dropout),
-        )
-
-    def forward(self, x):
-        x = x + self.attn(self.norm1(x))
-        x = x + self.ff(self.norm2(x))
-        return x
-
-
 class MetaTabularTransformer(nn.Module):
     """
-    Tabular Transformer model.
+    Tabular Transformer matching Meta_Tabular_final.pt checkpoint.
 
-    Architecture:
-    - Feature embedding: each input feature → d_block embedding
-    - n_blocks Transformer layers
-    - Classifier head (binary output)
+    Architecture (derived from state_dict keys/shapes):
+      input_proj  : Linear(input_dim=10, d_model=192)
+      encoder     : nn.TransformerEncoder — 2 layers, nhead=8, dim_feedforward=768
+      classifier  : Sequential(LayerNorm(192), Linear(192, 1))
     """
 
     def __init__(
         self,
-        input_dim: int,
-        d_block: int = 192,
-        n_blocks: int = 2,
-        attention_n_heads: int = 8,
+        input_dim: int = 10,
+        d_model: int = 192,
+        nhead: int = 8,
+        num_layers: int = 2,
+        dim_feedforward: int = 768,
         dropout: float = 0.1,
     ):
         super().__init__()
-        self.feature_embedding = nn.Linear(1, d_block)
-        self.blocks = nn.ModuleList(
-            [TransformerBlock(d_block, attention_n_heads, dropout) for _ in range(n_blocks)]
+        self.input_proj = nn.Linear(input_dim, d_model)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            batch_first=True,
         )
-        self.norm = nn.LayerNorm(d_block)
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.classifier = nn.Sequential(
-            nn.Linear(d_block * input_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(128, 1),
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, 1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, input_dim)
-        x = x.unsqueeze(-1)                         # (B, input_dim, 1)
-        x = self.feature_embedding(x)               # (B, input_dim, d_block)
-        for block in self.blocks:
-            x = block(x)
-        x = self.norm(x)                            # (B, input_dim, d_block)
-        x = x.flatten(1)                            # (B, input_dim * d_block)
-        return self.classifier(x)                   # (B, 1)
+        x = self.input_proj(x)    # (B, d_model)
+        x = x.unsqueeze(1)         # (B, 1, d_model) — single sequence token
+        x = self.encoder(x)        # (B, 1, d_model)
+        x = x.squeeze(1)           # (B, d_model)
+        return self.classifier(x)  # (B, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -139,10 +97,11 @@ class ThalassemiaPredictor:
 
             # 2. Instantiate architecture & load weights
             self.model = MetaTabularTransformer(
-                input_dim=self.configs["meta_input_dim"],
-                d_block=meta_cfg["d_block"],
-                n_blocks=meta_cfg["n_blocks"],
-                attention_n_heads=meta_cfg["attention_n_heads"],
+                input_dim=self.configs["meta_input_dim"],   # 10
+                d_model=meta_cfg["d_block"],                 # 192
+                nhead=meta_cfg["attention_n_heads"],          # 8
+                num_layers=meta_cfg["n_blocks"],              # 2
+                dim_feedforward=768,                          # confirmed from state_dict
                 dropout=meta_cfg["dropout"],
             )
             weights_path = os.path.join(self.model_dir, "Meta_Tabular_final.pt")

@@ -11,7 +11,7 @@ import { authHeaders } from "@/lib/auth";
 
 // Validation schema
 const parentSchema = z.object({
-  patient_id: z.string().min(1, "Patient ID is required"),
+  patient_id: z.string().max(50).optional(),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
   dob: z.string().min(1, "Date of birth is required").refine((val) => {
@@ -131,8 +131,8 @@ export default function PredictPage() {
       <h3 className="text-lg font-semibold text-navy-800 mb-6 flex items-center">
         <span
           className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 text-lg ${type === "father"
-              ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
-              : "bg-gradient-to-br from-pink-500 to-pink-600 text-white"
+            ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
+            : "bg-gradient-to-br from-pink-500 to-pink-600 text-white"
             }`}
         >
           {type === "father" ? "♂" : "♀"}
@@ -142,10 +142,10 @@ export default function PredictPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <FormInput
-          label="Patient ID"
+          label="Patient ID (Optional)"
           {...register(`${type}.patient_id`)}
           error={parentErrors?.patient_id?.message}
-          required
+          placeholder="Leave blank for privacy"
         />
         <FormInput
           label="First Name"

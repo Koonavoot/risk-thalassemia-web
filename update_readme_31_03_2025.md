@@ -405,9 +405,89 @@ ON CONFLICT (username) DO NOTHING;"
 
 ## ⚠️ สิ่งที่ต้องทำหลัง Deploy
 
-
+- [x] ติดตั้ง HTTPS ด้วย Certbot (เสร็จแล้ว 31 มี.ค. 2026)
 - [ ] เปลี่ยน `SECRET_KEY` ใน `docker-compose.yml` เป็นค่า random จริงๆ ก่อน go-live
-- [ ] ทดสอบ login ด้วย user ทั้ง 3 คน
-- [ ] ทดสอบ `/predict` endpoint ว่าผล Transformer ถูกต้อง
-- [ ] ทดสอบว่าเข้า `/predict` โดยไม่ login → redirect ไป `/login`
-- [ ] ตรวจสอบว่า Nginx ยัง proxy ถูกต้อง (port 80 → 3000, /api/ → 8000)
+- [x] ทดสอบ login ด้วย user ทั้ง 3 คน (เสร็จแล้ว)
+- [x] ทดสอบ `/predict` endpoint (เสร็จแล้ว — แก้ architecture แล้ว)
+- [x] ทดสอบว่าเข้า `/predict` โดยไม่ login → redirect ไป `/login` (proxy.ts ทำงานได้)
+- [x] ตรวจสอบว่า Nginx ยัง proxy ถูกต้อง (port 80/443 → 3000, /api/ → 8000)
+
+---
+
+## 📋 Session 2 — 5 เมษายน 2026
+
+อัปเดตและแก้ไขปัญหาหลัง deploy ครั้งแรก
+
+### ปัญหาและวิธีแก้
+
+| # | ปัญหา | ไฟล์ที่แก้ | วิธีแก้ |
+|---|-------|-----------|--------|
+| 1 | Frontend build error: `destination` does not start with `/` | `frontend/Dockerfile` | เพิ่ม `ARG NEXT_PUBLIC_API_URL` + `ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL` ก่อน `RUN npm run build` |
+| 2 | Build error: middleware.ts กับ proxy.ts ขัดแย้งกัน | `frontend/middleware.ts` | ลบ `middleware.ts` เก็บไว้แค่ `proxy.ts` |
+| 3 | Build error: `proxy.ts` ต้อง export function ชื่อ `proxy` | `frontend/proxy.ts` | เขียนใหม่ให้ export `function proxy()` แทน `function middleware()` |
+| 4 | Login ขึ้น `{"error":"Internal Server Error"}` แทน 401 | `backend/app/main.py` | แยก `@app.exception_handler(HTTPException)` ออกมาก่อน global handler ทำให้ 401/403 ผ่านได้ถูกต้อง |
+| 5 | Login ไม่ redirect หลังกด Sign In | `frontend/app/login/page.tsx` | เปลี่ยน `router.push(from)` เป็น `window.location.href = from` เพื่อ hard navigate |
+| 6 | DB password ไม่ตรง (`FATAL: password authentication failed`) | VPS (ไม่มีไฟล์) | รัน `ALTER USER postgres WITH PASSWORD 'postgres'` ใน postgres container แล้ว `docker compose down -v` + `up --build` เพื่อแก้ถาวร |
+| 7 | `Assess Risk` ขึ้น `Failed to load model` (architecture mismatch) | `backend/app/predictor.py` | เขียน `MetaTabularTransformer` ใหม่ให้ตรงกับ checkpoint: `input_proj` Linear(10→192), `nn.TransformerEncoder` (nhead=8, dim_ff=768), `LayerNorm+Linear(192,1)` |
+| 8 | `Save to History` ขึ้น `THRESHOLD is not defined` | `backend/app/routes/predict.py` | แก้ `threshold_used=THRESHOLD` → `threshold_used=predictor.threshold` |
+| 9 | History ขึ้น "Not authenticated" | `frontend/app/history/page.tsx` | เพิ่ม `Authorization: Bearer <token>` header ในทุก axios call |
+| 10 | ไม่มีปุ่ม Delete ใน History | `frontend/app/history/page.tsx` | เพิ่มปุ่ม **Delete** (admin ลบจริงผ่าน `DELETE /api/history/:id`) และ **Hide** (user อื่นซ่อนใน session เท่านั้น) |
+
+### คำสั่งสำคัญที่ใช้วันนี้
+
+```bash
+# ตรวจสอบ model architecture จริงจาก checkpoint
+docker exec thalassemia_backend python -c "
+import torch
+sd = torch.load('model/Meta_Tabular_final.pt', map_location='cpu')
+for k, v in sd.items():
+    print(f'{k}: {tuple(v.shape)}')"
+
+# แก้ DB password รอบแรก (ชั่วคราว)
+docker exec -it thalassemia_db bash -c "psql -U postgres -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+docker compose restart backend
+
+# แก้ DB password ถาวร — ลบ volume แล้วสร้างใหม่
+docker compose down -v
+docker compose up -d --build
+
+# Re-insert users หลังลบ volume (init.sql จะ seed อัตโนมัติ)
+# ตรวจสอบ
+docker exec -it thalassemia_db psql -U postgres -d thalassemia_db -c \
+"SELECT id, username, is_active FROM users;"
+```
+
+### CORS อัปเดต (`backend/app/main.py`)
+
+เพิ่ม HTTPS origins:
+```python
+allow_origins=[
+    "http://localhost:3000",
+    "http://thalassemiaai.com",
+    "https://thalassemiaai.com",      # ← เพิ่ม
+    "http://www.thalassemiaai.com",
+    "https://www.thalassemiaai.com",   # ← เพิ่ม
+    "http://119.59.103.14:3000"
+]
+```
+
+### NEXT_PUBLIC_API_URL อัปเดต (`docker-compose.yml`)
+
+```diff
+- NEXT_PUBLIC_API_URL=http://119.59.103.14:8000
++ NEXT_PUBLIC_API_URL=http://backend:8000   # Docker internal hostname
+```
+
+Next.js server-side rewrite ใช้ internal URL ได้ ส่วน client-side axios ใช้ relative URL ผ่าน Nginx
+
+### สรุปสถานะหลัง Session 2
+
+| Feature | สถานะ |
+|---------|-------|
+| HTTPS (thalassemiaai.com) | ✅ ทำงาน |
+| Login / Logout | ✅ ทำงาน |
+| Assess Risk (Transformer Model) | ✅ ทำงาน |
+| Save to History | ✅ ทำงาน |
+| View History | ✅ ทำงาน |
+| Delete (admin) / Hide (user) | ✅ ทำงาน |
+| Auto-renew SSL | ✅ Certbot ตั้งไว้แล้ว |

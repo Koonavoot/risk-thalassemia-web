@@ -23,7 +23,7 @@ class Prediction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Father Information
-    father_patient_id = Column(String(50), nullable=False)
+    father_patient_id = Column(String(50), nullable=True)
     father_first_name = Column(String(100))
     father_last_name = Column(String(100))
     father_dob = Column(DateTime, nullable=False)
@@ -35,7 +35,7 @@ class Prediction(Base):
     father_dcip = Column(Boolean, nullable=False)
 
     # Mother Information
-    mother_patient_id = Column(String(50), nullable=False)
+    mother_patient_id = Column(String(50), nullable=True)
     mother_first_name = Column(String(100))
     mother_last_name = Column(String(100))
     mother_dob = Column(DateTime, nullable=False)

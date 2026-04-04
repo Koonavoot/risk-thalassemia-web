@@ -6,7 +6,7 @@ from uuid import UUID
 
 class ParentData(BaseModel):
     """Schema for parent blood test data."""
-    patient_id: str = Field(..., min_length=1, max_length=50, description="Patient ID")
+    patient_id: Optional[str] = Field(None, max_length=50, description="Patient ID (optional)")
     first_name: Optional[str] = Field(None, max_length=100, description="First name")
     last_name: Optional[str] = Field(None, max_length=100, description="Last name")
     dob: date = Field(..., description="Date of birth")
@@ -51,11 +51,11 @@ class PredictionSaveRequest(BaseModel):
 class PredictionResponse(BaseModel):
     """Schema for prediction response from database."""
     id: UUID
-    father_patient_id: str
+    father_patient_id: Optional[str]
     father_first_name: Optional[str]
     father_last_name: Optional[str]
     father_age: int
-    mother_patient_id: str
+    mother_patient_id: Optional[str]
     mother_first_name: Optional[str]
     mother_last_name: Optional[str]
     mother_age: int
@@ -70,11 +70,11 @@ class PredictionResponse(BaseModel):
 class HistoryItem(BaseModel):
     """Schema for history list item."""
     id: UUID
-    father_patient_id: str
+    father_patient_id: Optional[str]
     father_first_name: Optional[str]
     father_last_name: Optional[str]
     father_age: int
-    mother_patient_id: str
+    mother_patient_id: Optional[str]
     mother_first_name: Optional[str]
     mother_last_name: Optional[str]
     mother_age: int

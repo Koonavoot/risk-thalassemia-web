@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS predictions (
     -- ======================
     -- Father Information
     -- ======================
-    father_patient_id VARCHAR(50) NOT NULL,
+    father_patient_id VARCHAR(50),
     father_first_name VARCHAR(100),
     father_last_name VARCHAR(100),
     father_dob DATE NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS predictions (
     -- ======================
     -- Mother Information
     -- ======================
-    mother_patient_id VARCHAR(50) NOT NULL,
+    mother_patient_id VARCHAR(50),
     mother_first_name VARCHAR(100),
     mother_last_name VARCHAR(100),
     mother_dob DATE NOT NULL,

@@ -127,7 +127,7 @@ async def save_prediction(
             
             # Prediction data
             model_version=MODEL_VERSION,
-            threshold_used=THRESHOLD,
+            threshold_used=predictor.threshold,
             probability=request.probability,
             result=request.result,
             

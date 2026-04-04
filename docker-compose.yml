@@ -1,10 +1,10 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
     container_name: thalassemia_db
+    command: >
+      postgres -c hba_file=/etc/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -14,6 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/pg_hba.conf:/etc/postgresql/pg_hba.conf
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s

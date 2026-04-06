@@ -41,6 +41,7 @@ export default function Navbar() {
                 width={48}
                 height={48}
                 className="rounded-xl"
+                unoptimized
               />
               <div className="hidden sm:block">
                 <span className="text-xl font-bold text-navy-800">
@@ -57,8 +58,8 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${pathname === item.href
-                    ? "bg-navy-600 text-white shadow-md"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-navy-700"
+                  ? "bg-navy-600 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-navy-700"
                   }`}
               >
                 {item.label}

@@ -432,6 +432,10 @@ ON CONFLICT (username) DO NOTHING;"
 | 8 | `Save to History` ขึ้น `THRESHOLD is not defined` | `backend/app/routes/predict.py` | แก้ `threshold_used=THRESHOLD` → `threshold_used=predictor.threshold` |
 | 9 | History ขึ้น "Not authenticated" | `frontend/app/history/page.tsx` | เพิ่ม `Authorization: Bearer <token>` header ในทุก axios call |
 | 10 | ไม่มีปุ่ม Delete ใน History | `frontend/app/history/page.tsx` | เพิ่มปุ่ม **Delete** (admin ลบจริงผ่าน `DELETE /api/history/:id`) และ **Hide** (user อื่นซ่อนใน session เท่านั้น) |
+| 11 | ต้องแก้ DB password ซ้ำๆ เมื่อ restart | `backend/pg_hba.conf` | สร้างไฟล์ config เพื่อใช้ `trust` auth สำหรับ Docker Network (`172.16.0.0/12`) ถาวร โดยแก้ `docker-compose.yml` ให้ mount ค่านี้ไปใช้ |
+| 12 | เปลี่ยน Patient ID ให้ไม่บังคับกรอก (Privacy) | `backend/app/schemas.py`, `models.py` | แก้ schema ให้รองรับ `Optional[str]`, เพิ่ม `nullable=True`, และแก้ frontend (Zod form validation) เป็น optional |
+| 13 | ลบ Origin HTTP | `backend/app/main.py` | ลบ `http://thalassemiaai.com` ออกจาก CORS ป้องกัน traffic ที่ไม่เข้ารหัส |
+
 
 ### คำสั่งสำคัญที่ใช้วันนี้
 

@@ -136,6 +136,55 @@ export default function ContactPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-sm font-medium text-navy-800">Research Project</h3>
+                  <p className="text-sm text-slate-600">
+                    AI System for Screening the Risk of Having Children<br />
+                    with Severe Thalassemia in Thai Couples
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-6 w-6 text-navy-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-sm font-medium text-navy-800">Medical Researcher</h3>
+                  <p className="text-sm text-slate-600">
+                    Assoc.Prof. Maethaphan Kitporntheranunt, MD
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-6 w-6 text-navy-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
                       d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
                     />
                     <path
@@ -149,8 +198,8 @@ export default function ContactPage() {
                 <div className="ml-4">
                   <h3 className="text-sm font-medium text-navy-800">Address</h3>
                   <p className="text-sm text-slate-600">
-                    Faculty of Engineering<br />
-                    Bangkok, Thailand 10170
+                    Faculty of Medicine, Srinakharinwirot University,<br />
+                    Nakhon Nayok, 26120, Thailand.
                   </p>
                 </div>
               </div>
@@ -174,57 +223,7 @@ export default function ContactPage() {
                 <div className="ml-4">
                   <h3 className="text-sm font-medium text-navy-800">Email</h3>
                   <p className="text-sm text-slate-600">
-                    koonavoot.k@gmail.com
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-6 w-6 text-navy-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-navy-800">Phone</h3>
-                  <p className="text-sm text-slate-600">+66 94-950-2778</p>
-                </div>
-              </div>
-
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-6 w-6 text-navy-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-navy-800">
-                    Working Hours
-                  </h3>
-                  <p className="text-sm text-slate-600">
-                    Monday - Friday: 8:00 AM - 5:00 PM<br />
-                    Saturday: 8:00 AM - 12:00 PM<br />
-                    Sunday: Closed
+                    mtp_swu@hotmail.com
                   </p>
                 </div>
               </div>
@@ -243,7 +242,7 @@ export default function ContactPage() {
                   What is Thalassemia?
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  Thalassemia is a group of inherited blood disorders characterized 
+                  Thalassemia is a group of inherited blood disorders characterized
                   by reduced or absent amounts of hemoglobin.
                 </p>
               </div>
@@ -253,7 +252,7 @@ export default function ContactPage() {
                   How accurate is the prediction?
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  Our model provides screening support based on statistical analysis. 
+                  Our model provides screening support based on statistical analysis.
                   Always confirm results with laboratory testing and medical professionals.
                 </p>
               </div>
@@ -263,7 +262,7 @@ export default function ContactPage() {
                   Is my data secure?
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  Yes, all data is processed securely and stored in compliance 
+                  Yes, all data is processed securely and stored in compliance
                   with medical data protection standards.
                 </p>
               </div>

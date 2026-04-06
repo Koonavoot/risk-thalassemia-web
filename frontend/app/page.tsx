@@ -22,8 +22,9 @@ export default function Home() {
                 </span>
               </h1>
               <p className="text-lg text-slate-300 mb-8 leading-relaxed max-w-xl">
-                AI-powered disease screening tools designed for healthcare professionals  
-                to assess the risk of thalassemia in children based on the parents' blood test results.
+                AI-powered disease screening tools designed for healthcare professionals
+                to assess the risk of thalassemia in children
+                based on the parents' blood test results.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/predict" className="btn-primary text-base px-8 py-4 shadow-xl shadow-navy-900/50">
@@ -37,7 +38,7 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            
+
             {/* Right - Doctor Image */}
             <div className="relative hidden lg:flex justify-end items-end">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/10 via-transparent to-cyan-400/10 rounded-full blur-3xl"></div>
@@ -53,7 +54,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        
+
         {/* Decorative Elements */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 to-transparent"></div>
       </section>
@@ -93,12 +94,12 @@ export default function Home() {
               Our platform provides comprehensive tools for thalassemia risk assessment
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="card group hover:border-navy-200">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-navy-600 to-navy-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
@@ -106,7 +107,7 @@ export default function Home() {
                 Easy Data Entry
               </h3>
               <p className="text-slate-600 leading-relaxed">
-                Intuitive form interface for blood test values including 
+                Intuitive form interface for blood test values including
                 Hb, Hct, MCV, MCH, and DCIP results.
               </p>
             </div>
@@ -114,7 +115,7 @@ export default function Home() {
             <div className="card group hover:border-navy-200">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-navy-600 to-navy-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
@@ -122,7 +123,7 @@ export default function Home() {
                 AI-Powered Analysis
               </h3>
               <p className="text-slate-600 leading-relaxed">
-                Advanced XGBoost model trained on clinical data for 
+                Advanced XGBoost model trained on clinical data for
                 accurate risk probability assessment.
               </p>
             </div>
@@ -130,7 +131,7 @@ export default function Home() {
             <div className="card group hover:border-navy-200">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-navy-600 to-navy-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -138,7 +139,7 @@ export default function Home() {
                 History Tracking
               </h3>
               <p className="text-slate-600 leading-relaxed">
-                Save and review predictions with search and filter 
+                Save and review predictions with search and filter
                 for comprehensive record management.
               </p>
             </div>
@@ -155,7 +156,7 @@ export default function Home() {
             </h2>
             <p className="text-slate-600">Simple 4-step process for risk assessment</p>
           </div>
-          
+
           <div className="grid md:grid-cols-4 gap-8">
             {[
               { step: 1, title: "Enter Data", desc: "Input blood test values for both parents" },
@@ -235,7 +236,7 @@ export default function Home() {
             <div className="flex items-start p-6 rounded-2xl bg-amber-50 border border-amber-100">
               <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mr-4">
                 <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
@@ -244,8 +245,8 @@ export default function Home() {
                   Medical Disclaimer
                 </h3>
                 <p className="text-amber-700 leading-relaxed">
-                  This tool is intended for screening support only and should not replace 
-                  professional medical diagnosis or laboratory confirmation. Always consult 
+                  This tool is intended for screening support only and should not replace
+                  professional medical diagnosis or laboratory confirmation. Always consult
                   with qualified healthcare professionals for definitive diagnosis.
                 </p>
               </div>

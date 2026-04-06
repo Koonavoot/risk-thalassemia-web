@@ -73,7 +73,7 @@ export default function Home() {
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-navy-700">&lt;1s</div>
-              <div className="text-sm text-slate-500 mt-1">Prediction Time</div>
+              <div className="text-sm text-slate-500 mt-1">Assessment Time</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-navy-700">24/7</div>
@@ -139,7 +139,7 @@ export default function Home() {
                 History Tracking
               </h3>
               <p className="text-slate-600 leading-relaxed">
-                Save and review predictions with search and filter
+                Save and review assessment with search and filter
                 for comprehensive record management.
               </p>
             </div>
@@ -162,7 +162,7 @@ export default function Home() {
               { step: 1, title: "Enter Data", desc: "Input blood test values for both parents" },
               { step: 2, title: "Run Analysis", desc: "AI model processes the data instantly" },
               { step: 3, title: "View Results", desc: "Get risk level with probability score" },
-              { step: 4, title: "Save Record", desc: "Store prediction for future reference" },
+              { step: 4, title: "Save Record", desc: "Store assessment for future reference" },
             ].map((item) => (
               <div key={item.step} className="relative text-center group">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-navy-600 to-navy-700 text-white flex items-center justify-center mx-auto mb-5 text-xl font-bold shadow-lg shadow-navy-600/30 group-hover:scale-110 transition-transform">
@@ -262,10 +262,10 @@ export default function Home() {
             Ready to Get Started?
           </h2>
           <p className="text-slate-300 mb-8 max-w-xl mx-auto">
-            Begin your thalassemia risk assessment with our AI-powered prediction tool
+            Begin your thalassemia risk assessment with our AI-powered assessment tool
           </p>
           <Link href="/predict" className="btn-primary bg-white text-navy-700 hover:bg-slate-100 text-base px-8 py-4">
-            Start Prediction Now
+            Start Assessment Now
             <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>

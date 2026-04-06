@@ -17,14 +17,14 @@ export default function Home() {
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
                 Thalassemia Risk
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300 pb-2">
                   Screening System
                 </span>
               </h1>
               <p className="text-lg text-slate-300 mb-8 leading-relaxed max-w-xl">
-                AI-powered disease screening tools designed for healthcare professionals
-                to assess the risk of thalassemia in children
-                based on the parents' blood test results.
+                AI-powered disease screening tools designed for healthcare <br className="hidden sm:block" />
+                professionals to assess the risk of thalassemia in children <br className="hidden sm:block" />
+                based on the parents&apos; blood test results.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/predict" className="btn-primary text-base px-8 py-4 shadow-xl shadow-navy-900/50">

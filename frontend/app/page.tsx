@@ -123,7 +123,7 @@ export default function Home() {
                 AI-Powered Analysis
               </h3>
               <p className="text-slate-600 leading-relaxed">
-                Advanced XGBoost model trained on clinical data for
+                Advanced Meta-Tabular Transformer model trained on clinical data for
                 accurate risk probability assessment.
               </p>
             </div>

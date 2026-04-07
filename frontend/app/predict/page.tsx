@@ -69,6 +69,11 @@ export default function PredictPage() {
     resolver: zodResolver(formSchema),
   });
 
+  const cleanParent = (parent: FormData["father"]) => ({
+    ...parent,
+    dob: parent.dob?.trim() || undefined,
+  });
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError(null);
@@ -76,7 +81,11 @@ export default function PredictPage() {
     setIsSaved(false);
 
     try {
-      const response = await axios.post<PredictionResult>("/api/predict", data, {
+      const payload = {
+        father: cleanParent(data.father),
+        mother: cleanParent(data.mother),
+      };
+      const response = await axios.post<PredictionResult>("/api/predict", payload, {
         headers: authHeaders(),
       });
       setPredictionResult(response.data);
@@ -99,11 +108,13 @@ export default function PredictPage() {
 
     try {
       const data = getValues();
-      await axios.post("/api/predict/save", {
-        ...data,
+      const payload = {
+        father: cleanParent(data.father),
+        mother: cleanParent(data.mother),
         result: predictionResult.result,
         probability: predictionResult.probability,
-      }, {
+      };
+      await axios.post("/api/predict/save", payload, {
         headers: authHeaders(),
       });
       setIsSaved(true);

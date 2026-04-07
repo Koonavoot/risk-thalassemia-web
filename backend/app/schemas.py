@@ -58,11 +58,11 @@ class PredictionResponse(BaseModel):
     father_patient_id: Optional[str]
     father_first_name: Optional[str]
     father_last_name: Optional[str]
-    father_age: int
+    father_age: Optional[int]
     mother_patient_id: Optional[str]
     mother_first_name: Optional[str]
     mother_last_name: Optional[str]
-    mother_age: int
+    mother_age: Optional[int]
     result: str
     probability: float
     visit_datetime: datetime

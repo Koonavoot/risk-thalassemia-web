@@ -115,7 +115,7 @@ export default function HistoryPage() {
         alert("Failed to delete record.");
       }
     } else {
-      if (!confirm("Hide this record from your view? It will still be visible to admin.")) return;
+      if (!confirm("Delete this record?")) return;
       setHiddenIds((prev) => new Set([...prev, id]));
     }
   };

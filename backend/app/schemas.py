@@ -9,7 +9,7 @@ class ParentData(BaseModel):
     patient_id: Optional[str] = Field(None, max_length=50, description="Patient ID (optional)")
     first_name: Optional[str] = Field(None, max_length=100, description="First name")
     last_name: Optional[str] = Field(None, max_length=100, description="Last name")
-    dob: date = Field(..., description="Date of birth")
+    dob: Optional[date] = Field(None, description="Date of birth (optional, use CE / Gregorian calendar)")
     hb: float = Field(..., gt=0, description="Hemoglobin (g/dL)")
     hct: float = Field(..., ge=0, le=100, description="Hematocrit (%)")
     mcv: float = Field(..., description="Mean Corpuscular Volume (fL)")
@@ -18,9 +18,13 @@ class ParentData(BaseModel):
 
     @field_validator('dob')
     @classmethod
-    def dob_must_be_past(cls, v: date) -> date:
+    def dob_must_be_past(cls, v: Optional[date]) -> Optional[date]:
+        if v is None:
+            return v
         if v >= date.today():
             raise ValueError('Date of birth must be in the past')
+        if v.year < 1900:
+            raise ValueError('Date of birth year seems invalid (before 1900). Please use CE (Gregorian) year, not Buddhist Era (BE).')
         return v
 
 
@@ -73,14 +77,15 @@ class HistoryItem(BaseModel):
     father_patient_id: Optional[str]
     father_first_name: Optional[str]
     father_last_name: Optional[str]
-    father_age: int
+    father_age: Optional[int]
     mother_patient_id: Optional[str]
     mother_first_name: Optional[str]
     mother_last_name: Optional[str]
-    mother_age: int
+    mother_age: Optional[int]
     result: str
     probability: float
     visit_datetime: datetime
+    is_hidden: bool = False
 
     class Config:
         from_attributes = True
@@ -93,6 +98,7 @@ class PaginatedHistory(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    is_admin: bool = False
 
 
 class ErrorResponse(BaseModel):

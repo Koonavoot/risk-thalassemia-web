@@ -14,10 +14,15 @@ const parentSchema = z.object({
   patient_id: z.string().max(50).optional(),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
-  dob: z.string().min(1, "Date of birth is required").refine((val) => {
+  dob: z.string().optional().refine((val) => {
+    if (!val) return true; // optional — skip validation if empty
     const date = new Date(val);
-    return date < new Date();
-  }, "Date of birth must be in the past"),
+    if (isNaN(date.getTime())) return false;
+    const year = date.getFullYear();
+    if (year < 1900) return false; // likely Buddhist Era mistake (BE = CE + 543)
+    if (date >= new Date()) return false; // must be in the past
+    return true;
+  }, "Date of birth must be a past CE (Gregorian) year. If you are using Thai year (พ.ศ.), please subtract 543."),
   hb: z.coerce.number().positive("Hb must be greater than 0"),
   hct: z.coerce.number().min(0, "Hct must be >= 0").max(100, "Hct must be <= 100"),
   mcv: z.coerce.number().min(0, "MCV must be >= 0"),
@@ -142,7 +147,7 @@ export default function PredictPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <FormInput
-          label="Patient ID (Optional)"
+          label="Patient ID"
           {...register(`${type}.patient_id`)}
           error={parentErrors?.patient_id?.message}
           placeholder="Leave blank for privacy"
@@ -158,11 +163,11 @@ export default function PredictPage() {
           error={parentErrors?.last_name?.message}
         />
         <FormInput
-          label="Date of Birth"
+          label="Date of Birth — CE"
           type="date"
           {...register(`${type}.dob`)}
           error={parentErrors?.dob?.message}
-          required
+          placeholder="Optional — use CE / ค.ศ. year"
         />
       </div>
 
@@ -179,7 +184,7 @@ export default function PredictPage() {
         <FormInput
           label="Hb (g/dL)"
           type="number"
-          step="0.1"
+          step="1.0"
           {...register(`${type}.hb`)}
           error={parentErrors?.hb?.message}
           required
@@ -187,7 +192,7 @@ export default function PredictPage() {
         <FormInput
           label="Hct (%)"
           type="number"
-          step="0.1"
+          step="1.0"
           {...register(`${type}.hct`)}
           error={parentErrors?.hct?.message}
           required
@@ -195,7 +200,7 @@ export default function PredictPage() {
         <FormInput
           label="MCV (fL)"
           type="number"
-          step="0.1"
+          step="1.0"
           {...register(`${type}.mcv`)}
           error={parentErrors?.mcv?.message}
           required
@@ -203,7 +208,7 @@ export default function PredictPage() {
         <FormInput
           label="MCH (pg)"
           type="number"
-          step="0.1"
+          step="1.0"
           {...register(`${type}.mch`)}
           error={parentErrors?.mch?.message}
           required

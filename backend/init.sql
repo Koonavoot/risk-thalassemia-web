@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS predictions (
     father_patient_id VARCHAR(50),
     father_first_name VARCHAR(100),
     father_last_name VARCHAR(100),
-    father_dob DATE NOT NULL,
-    father_age INT NOT NULL CHECK (father_age >= 0),
+    father_dob DATE,
+    father_age INT CHECK (father_age >= 0),
 
     father_hb FLOAT NOT NULL CHECK (father_hb > 0),
     father_hct FLOAT NOT NULL CHECK (father_hct BETWEEN 0 AND 100),
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS predictions (
     mother_patient_id VARCHAR(50),
     mother_first_name VARCHAR(100),
     mother_last_name VARCHAR(100),
-    mother_dob DATE NOT NULL,
-    mother_age INT NOT NULL CHECK (mother_age >= 0),
+    mother_dob DATE,
+    mother_age INT CHECK (mother_age >= 0),
 
     mother_hb FLOAT NOT NULL CHECK (mother_hb > 0),
     mother_hct FLOAT NOT NULL CHECK (mother_hct BETWEEN 0 AND 100),

@@ -84,7 +84,8 @@ async def get_history(
             total=total,
             page=page,
             page_size=page_size,
-            total_pages=total_pages
+            total_pages=total_pages,
+            is_admin=(current_user.username == "admin")
         )
     
     except Exception as e:
@@ -161,6 +162,13 @@ async def delete_prediction(
     Delete a prediction record.
     """
     try:
+        # Only admin can permanently delete
+        if current_user.username != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Only admin can permanently delete records."
+            )
+
         prediction = db.query(Prediction).filter(
             Prediction.id == prediction_id
         ).first()

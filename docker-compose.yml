@@ -4,7 +4,9 @@ services:
     image: postgres:15-alpine
     container_name: thalassemia_db
     command: >
-      postgres -c hba_file=/etc/postgresql/pg_hba.conf
+      postgres
+      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c config_file=/etc/postgresql/postgresql.conf
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -15,11 +17,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./backend/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./backend/postgresql.conf:/etc/postgresql/postgresql.conf
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # FastAPI Backend
   backend:
@@ -41,6 +48,10 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/model:/app/model
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   # Next.js Frontend
   frontend:
@@ -56,6 +67,10 @@ services:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:8000
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
 volumes:
   postgres_data:

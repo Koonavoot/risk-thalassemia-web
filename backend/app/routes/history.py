@@ -6,7 +6,7 @@ from sqlalchemy import or_, desc, asc
 
 from app.database import get_db
 from app.models import Prediction, User
-from app.schemas import PaginatedHistory, HistoryItem, ErrorResponse
+from app.schemas import PaginatedHistory, HistoryItem, PredictionDetailResponse, ErrorResponse
 from app.security import get_current_user
 
 router = APIRouter(prefix="/history", tags=["history"])
@@ -98,7 +98,7 @@ async def get_history(
 
 @router.get(
     "/{prediction_id}",
-    response_model=HistoryItem,
+    response_model=PredictionDetailResponse,
     responses={
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse}
@@ -110,7 +110,8 @@ async def get_prediction_detail(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Get detailed information about a specific prediction.
+    Get detailed information about a specific prediction,
+    including blood test values.
     """
     try:
         prediction = db.query(Prediction).filter(
@@ -123,18 +124,30 @@ async def get_prediction_detail(
                 detail="Prediction not found"
             )
         
-        return HistoryItem(
+        return PredictionDetailResponse(
             id=prediction.id,
             father_patient_id=prediction.father_patient_id,
             father_first_name=prediction.father_first_name,
             father_last_name=prediction.father_last_name,
             father_age=prediction.father_age,
+            father_hb=prediction.father_hb,
+            father_hct=prediction.father_hct,
+            father_mcv=prediction.father_mcv,
+            father_mch=prediction.father_mch,
+            father_dcip=prediction.father_dcip,
             mother_patient_id=prediction.mother_patient_id,
             mother_first_name=prediction.mother_first_name,
             mother_last_name=prediction.mother_last_name,
             mother_age=prediction.mother_age,
+            mother_hb=prediction.mother_hb,
+            mother_hct=prediction.mother_hct,
+            mother_mcv=prediction.mother_mcv,
+            mother_mch=prediction.mother_mch,
+            mother_dcip=prediction.mother_dcip,
             result=prediction.result,
             probability=prediction.probability,
+            model_version=prediction.model_version,
+            threshold_used=prediction.threshold_used,
             models_json=prediction.models_json,
             visit_datetime=prediction.visit_datetime
         )

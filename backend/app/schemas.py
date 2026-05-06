@@ -124,6 +124,41 @@ class HistoryItem(BaseModel):
         from_attributes = True
 
 
+class PredictionDetailResponse(BaseModel):
+    """Full detail schema including blood test values for the detail modal."""
+    id: UUID
+    # Father
+    father_patient_id: Optional[str]
+    father_first_name: Optional[str]
+    father_last_name: Optional[str]
+    father_age: Optional[int]
+    father_hb: float
+    father_hct: float
+    father_mcv: float
+    father_mch: float
+    father_dcip: bool
+    # Mother
+    mother_patient_id: Optional[str]
+    mother_first_name: Optional[str]
+    mother_last_name: Optional[str]
+    mother_age: Optional[int]
+    mother_hb: float
+    mother_hct: float
+    mother_mcv: float
+    mother_mch: float
+    mother_dcip: bool
+    # Prediction
+    result: str
+    probability: float
+    model_version: Optional[str] = None
+    threshold_used: Optional[float] = None
+    models_json: Optional[str] = None
+    visit_datetime: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PaginatedHistory(BaseModel):
     """Schema for paginated history response."""
     items: list[HistoryItem]

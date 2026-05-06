@@ -20,11 +20,11 @@ const MODEL_CATEGORIES: Record<string, string[]> = {
 };
 
 const MODEL_ICONS: Record<string, string> = {
-  "Random Forest": "🌲",
+  "Random Forest": "",
   "XGBoost": "⚡",
-  "NGBoost": "📊",
-  "FT-Transformer": "🔮",
-  "Meta Tabular FT-Transformer": "🧠",
+  "NGBoost": "",
+  "FT-Transformer": "",
+  "Meta Tabular FT-Transformer": "",
 };
 
 export default function MultiResultCard({
@@ -43,11 +43,10 @@ export default function MultiResultCard({
       {/* Summary Card */}
       <div className="card border-2 border-slate-200 overflow-hidden">
         <div
-          className={`-mx-6 -mt-6 px-6 py-5 mb-6 ${
-            majorityRisk
+          className={`-mx-6 -mt-6 px-6 py-5 mb-6 ${majorityRisk
               ? "bg-gradient-to-r from-red-500/10 to-red-600/5 border-b border-red-100"
               : "bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 border-b border-emerald-100"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -59,11 +58,10 @@ export default function MultiResultCard({
               </p>
             </div>
             <div
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-lg font-bold shadow-sm ${
-                majorityRisk
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-lg font-bold shadow-sm ${majorityRisk
                   ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
                   : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
-              }`}
+                }`}
             >
               {majorityRisk ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,11 +106,10 @@ export default function MultiResultCard({
                     return (
                       <div
                         key={model.model_name}
-                        className={`relative rounded-xl border p-4 transition-all hover:shadow-md ${
-                          isRisk
+                        className={`relative rounded-xl border p-4 transition-all hover:shadow-md ${isRisk
                             ? "border-red-200 bg-red-50/50"
                             : "border-emerald-200 bg-emerald-50/50"
-                        }`}
+                          }`}
                       >
                         {/* Model Name */}
                         <div className="flex items-center gap-2 mb-3">
@@ -127,11 +124,10 @@ export default function MultiResultCard({
                         {/* Result Badge */}
                         <div className="mb-3">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
-                              isRisk
+                            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${isRisk
                                 ? "bg-red-100 text-red-700"
                                 : "bg-emerald-100 text-emerald-700"
-                            }`}
+                              }`}
                           >
                             {isRisk ? (
                               <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -156,11 +152,10 @@ export default function MultiResultCard({
                           </div>
                           <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full transition-all duration-700 ease-out ${
-                                isRisk
+                              className={`h-full rounded-full transition-all duration-700 ease-out ${isRisk
                                   ? "bg-gradient-to-r from-red-400 to-red-500"
                                   : "bg-gradient-to-r from-emerald-400 to-emerald-500"
-                              }`}
+                                }`}
                               style={{ width: `${model.probability_percent}%` }}
                             />
                           </div>

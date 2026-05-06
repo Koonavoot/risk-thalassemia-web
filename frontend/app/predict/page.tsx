@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import axios from "axios";
 import { FormInput, FormSelect } from "@/components/FormInput";
-import ResultCard from "@/components/ResultCard";
+import MultiResultCard from "@/components/MultiResultCard";
 import { authHeaders } from "@/lib/auth";
 
 // Validation schema
@@ -39,12 +39,18 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-interface PredictionResult {
+interface SingleModelResult {
+  model_name: string;
   result: "Risk" | "No Risk";
   probability: number;
   probability_percent: number;
   threshold_used: number;
+}
+
+interface MultiPredictionResult {
+  models: SingleModelResult[];
   model_version: string;
+  disclaimer: string;
 }
 
 const dcipOptions = [
@@ -53,7 +59,7 @@ const dcipOptions = [
 ];
 
 export default function PredictPage() {
-  const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
+  const [predictionResult, setPredictionResult] = useState<MultiPredictionResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -85,7 +91,7 @@ export default function PredictPage() {
         father: cleanParent(data.father),
         mother: cleanParent(data.mother),
       };
-      const response = await axios.post<PredictionResult>("/api/predict", payload, {
+      const response = await axios.post<MultiPredictionResult>("/api/predict", payload, {
         headers: authHeaders(),
       });
       setPredictionResult(response.data);
@@ -111,8 +117,7 @@ export default function PredictPage() {
       const payload = {
         father: cleanParent(data.father),
         mother: cleanParent(data.mother),
-        result: predictionResult.result,
-        probability: predictionResult.probability,
+        models: predictionResult.models,
       };
       await axios.post("/api/predict/save", payload, {
         headers: authHeaders(),
@@ -299,10 +304,8 @@ export default function PredictPage() {
         </form>
 
         {predictionResult && (
-          <ResultCard
-            result={predictionResult.result}
-            probability={predictionResult.probability}
-            probabilityPercent={predictionResult.probability_percent}
+          <MultiResultCard
+            models={predictionResult.models}
             onSave={handleSave}
             onReset={handleReset}
             isSaving={isSaving}

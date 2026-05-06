@@ -5,6 +5,14 @@ import axios from "axios";
 import { format } from "date-fns";
 import { getToken } from "@/lib/auth";
 
+interface SingleModelResult {
+  model_name: string;
+  result: "Risk" | "No Risk";
+  probability: number;
+  probability_percent: number;
+  threshold_used: number;
+}
+
 interface HistoryItem {
   id: string;
   father_patient_id: string | null;
@@ -17,6 +25,7 @@ interface HistoryItem {
   mother_age: number | null;
   result: string;
   probability: number;
+  models_json: string | null;
   visit_datetime: string;
   is_hidden: boolean;
 }
@@ -30,6 +39,23 @@ interface PaginatedHistory {
   is_admin: boolean;
 }
 
+function parseModelsJson(json: string | null): SingleModelResult[] | null {
+  if (!json) return null;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+const MODEL_ICONS: Record<string, string> = {
+  "Random Forest": "🌲",
+  "XGBoost": "⚡",
+  "NGBoost": "📊",
+  "FT-Transformer": "🔮",
+  "Meta Tabular FT-Transformer": "🧠",
+};
+
 export default function HistoryPage() {
   const [data, setData] = useState<PaginatedHistory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +64,7 @@ export default function HistoryPage() {
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   // Non-admin users can locally "hide" rows in their session
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const pageSize = 10;
@@ -260,8 +287,8 @@ export default function HistoryPage() {
                           <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Father</th>
                           <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Mother</th>
                           <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Visit Date</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Result</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Probability</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Consensus</th>
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Models</th>
                           <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Action</th>
                         </tr>
                       </thead>
@@ -269,10 +296,15 @@ export default function HistoryPage() {
                         {visibleItems.map((item) => {
                           const isLocallyHidden = hiddenIds.has(item.id);
                           const isDbHidden = item.is_hidden;
-                          // Admin sees hidden rows faded; user rows are filtered out above
                           const fadedClass = isAdmin && (isLocallyHidden || isDbHidden) ? "opacity-40" : "";
+                          const models = parseModelsJson(item.models_json);
+                          const riskCount = models ? models.filter(m => m.result === "Risk").length : 0;
+                          const totalModels = models ? models.length : 0;
+                          const isExpanded = expandedId === item.id;
+
                           return (
-                            <tr key={item.id} className={`hover:bg-slate-50 transition-colors ${fadedClass}`}>
+                            <tr key={item.id} className={fadedClass}>
+                              {/* Main Row */}
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-semibold text-navy-800">
                                   {item.father_patient_id ?? "—"}
@@ -299,12 +331,43 @@ export default function HistoryPage() {
                                 {format(new Date(item.visit_datetime), "MMM d, yyyy HH:mm")}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-lg ${item.result === "Risk" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
-                                  {item.result}
-                                </span>
+                                {models && totalModels > 0 ? (
+                                  <span className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-lg ${
+                                    riskCount > totalModels / 2
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-emerald-100 text-emerald-700"
+                                  }`}>
+                                    {riskCount}/{totalModels} Risk
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex px-3 py-1.5 text-xs font-semibold rounded-lg ${
+                                    item.result === "Risk"
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-emerald-100 text-emerald-700"
+                                  }`}>
+                                    {item.result}
+                                  </span>
+                                )}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-navy-700">
-                                {(item.probability * 100).toFixed(2)}%
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {models && totalModels > 0 ? (
+                                  <button
+                                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                                  >
+                                    <svg
+                                      className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                    {isExpanded ? "Hide" : "Details"}
+                                  </button>
+                                ) : (
+                                  <span className="text-sm font-medium text-navy-700">
+                                    {(item.probability * 100).toFixed(2)}%
+                                  </span>
+                                )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {!(isAdmin && (isLocallyHidden || isDbHidden)) && (
@@ -329,6 +392,79 @@ export default function HistoryPage() {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Expanded Model Details - shown below table */}
+                  {expandedId && (() => {
+                    const item = visibleItems.find(i => i.id === expandedId);
+                    if (!item) return null;
+                    const models = parseModelsJson(item.models_json);
+                    if (!models) return null;
+                    return (
+                      <div className="border-t border-slate-200 bg-slate-50 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-sm font-semibold text-navy-800">
+                            Model Details — {formatName(item.father_first_name, item.father_last_name)} & {formatName(item.mother_first_name, item.mother_last_name)}
+                          </h4>
+                          <button
+                            onClick={() => setExpandedId(null)}
+                            className="text-slate-400 hover:text-slate-600"
+                          >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                          {models.map((model) => {
+                            const isRisk = model.result === "Risk";
+                            return (
+                              <div
+                                key={model.model_name}
+                                className={`rounded-xl border p-3 ${
+                                  isRisk
+                                    ? "border-red-200 bg-red-50/70"
+                                    : "border-emerald-200 bg-emerald-50/70"
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <span className="text-sm">
+                                    {MODEL_ICONS[model.model_name] || "🤖"}
+                                  </span>
+                                  <span className="text-xs font-semibold text-navy-800 truncate">
+                                    {model.model_name}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      isRisk
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-emerald-100 text-emerald-700"
+                                    }`}
+                                  >
+                                    {model.result}
+                                  </span>
+                                  <span className="text-xs font-semibold text-navy-700">
+                                    {model.probability_percent.toFixed(2)}%
+                                  </span>
+                                </div>
+                                <div className="mt-2 w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      isRisk
+                                        ? "bg-gradient-to-r from-red-400 to-red-500"
+                                        : "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                                    }`}
+                                    style={{ width: `${model.probability_percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Pagination */}

@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS predictions (
 
     probability FLOAT NOT NULL CHECK (probability BETWEEN 0 AND 1),
     result VARCHAR(20) NOT NULL CHECK (result IN ('Risk','No Risk')),
+    models_json TEXT,  -- JSON array of all model predictions
 
     -- ======================
     -- Metadata

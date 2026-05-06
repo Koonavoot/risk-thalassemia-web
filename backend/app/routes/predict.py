@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import json
 import logging
 import traceback
 from fastapi import APIRouter, HTTPException, Depends
@@ -8,12 +9,13 @@ from app.database import get_db
 from app.models import Prediction, User
 from app.schemas import (
     PredictionRequest,
-    PredictionResult,
-    PredictionSaveRequest,
+    MultiPredictionResult,
+    SingleModelResult,
+    MultiPredictionSaveRequest,
     PredictionResponse,
     ErrorResponse
 )
-from app.predictor import predictor, MODEL_VERSION
+from app.multi_predictor import multi_predictor, MODEL_VERSION
 from app.security import get_current_user
 
 router = APIRouter(prefix="/predict", tags=["predict"])
@@ -28,7 +30,7 @@ def calculate_age(dob: date) -> int:
 
 @router.post(
     "",
-    response_model=PredictionResult,
+    response_model=MultiPredictionResult,
     responses={
         400: {"model": ErrorResponse},
         500: {"model": ErrorResponse}
@@ -39,13 +41,13 @@ async def make_prediction(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Make a thalassemia risk prediction based on parent blood values.
+    Make a thalassemia risk prediction using all 5 models.
     
     This endpoint takes blood test data from both parents and returns
-    the risk assessment without saving to database.
+    risk assessments from all models without saving to database.
     """
     try:
-        result, probability = predictor.predict(
+        model_results = multi_predictor.predict_all(
             mother_hb=request.mother.hb,
             father_hb=request.father.hb,
             mother_hct=request.mother.hct,
@@ -58,12 +60,11 @@ async def make_prediction(
             father_dcip=request.father.dcip
         )
         
-        return PredictionResult(
-            result=result,
-            probability=probability,
-            probability_percent=round(probability * 100, 2),
-            threshold_used=predictor.threshold,
-            model_version=MODEL_VERSION
+        models = [SingleModelResult(**r) for r in model_results]
+        
+        return MultiPredictionResult(
+            models=models,
+            model_version=MODEL_VERSION,
         )
     
     except FileNotFoundError as e:
@@ -84,20 +85,30 @@ async def make_prediction(
     }
 )
 async def save_prediction(
-    request: PredictionSaveRequest,
+    request: MultiPredictionSaveRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Save a prediction result to the database.
+    Save a multi-model prediction result to the database.
     
     This endpoint saves the prediction along with all parent data
-    for historical reference.
+    and all model results for historical reference.
     """
     try:
         # Calculate ages (None if DOB not provided)
         father_age = calculate_age(request.father.dob) if request.father.dob else None
         mother_age = calculate_age(request.mother.dob) if request.mother.dob else None
+
+        # Determine summary result (majority vote)
+        risk_count = sum(1 for m in request.models if m.result == "Risk")
+        summary_result = "Risk" if risk_count > len(request.models) / 2 else "No Risk"
+        
+        # Average probability across all models
+        avg_probability = sum(m.probability for m in request.models) / len(request.models)
+
+        # Serialize all model results as JSON
+        models_json = json.dumps([m.model_dump() for m in request.models])
 
         # Create database record
         prediction = Prediction(
@@ -125,11 +136,12 @@ async def save_prediction(
             mother_mch=request.mother.mch,
             mother_dcip=request.mother.dcip == "Positive",
 
-            # Prediction data
+            # Prediction data (summary for backward compat)
             model_version=MODEL_VERSION,
-            threshold_used=predictor.threshold,
-            probability=request.probability,
-            result=request.result,
+            threshold_used=0.5,  # summary threshold
+            probability=avg_probability,
+            result=summary_result,
+            models_json=models_json,
 
             # Metadata
             visit_datetime=datetime.utcnow()

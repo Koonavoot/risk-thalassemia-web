@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, CheckConstraint
+from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, Text, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 
@@ -51,6 +51,7 @@ class Prediction(Base):
     threshold_used = Column(Float, nullable=False)
     probability = Column(Float, nullable=False)
     result = Column(String(20), nullable=False)
+    models_json = Column(Text, nullable=True)  # JSON array of all model results
 
     # Metadata
     visit_datetime = Column(DateTime(timezone=True), default=datetime.utcnow)

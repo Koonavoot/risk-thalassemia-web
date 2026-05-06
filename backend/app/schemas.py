@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from uuid import UUID
 
 
@@ -34,8 +34,28 @@ class PredictionRequest(BaseModel):
     mother: ParentData
 
 
+# --- Single model result (used in multi-model response) ---
+
+class SingleModelResult(BaseModel):
+    """Result from a single prediction model."""
+    model_name: str
+    result: Literal["Risk", "No Risk"]
+    probability: float = Field(..., ge=0, le=1)
+    probability_percent: float = Field(..., ge=0, le=100)
+    threshold_used: float
+
+
+class MultiPredictionResult(BaseModel):
+    """Response from multi-model prediction endpoint."""
+    models: List[SingleModelResult]
+    model_version: str
+    disclaimer: str = "This tool is intended for screening support only and should not replace professional medical diagnosis or laboratory confirmation."
+
+
+# --- Legacy single-model result (kept for backward compatibility) ---
+
 class PredictionResult(BaseModel):
-    """Schema for prediction result."""
+    """Schema for prediction result (legacy single-model)."""
     result: Literal["Risk", "No Risk"]
     probability: float = Field(..., ge=0, le=1)
     probability_percent: float = Field(..., ge=0, le=100)
@@ -44,8 +64,19 @@ class PredictionResult(BaseModel):
     disclaimer: str = "This tool is intended for screening support only and should not replace professional medical diagnosis or laboratory confirmation."
 
 
+# --- Save request (multi-model) ---
+
+class MultiPredictionSaveRequest(BaseModel):
+    """Schema for saving multi-model prediction to database."""
+    father: ParentData
+    mother: ParentData
+    models: List[SingleModelResult]
+
+
+# --- Legacy save request ---
+
 class PredictionSaveRequest(BaseModel):
-    """Schema for saving prediction to database."""
+    """Schema for saving prediction to database (legacy)."""
     father: ParentData
     mother: ParentData
     result: Literal["Risk", "No Risk"]
@@ -65,6 +96,7 @@ class PredictionResponse(BaseModel):
     mother_age: Optional[int]
     result: str
     probability: float
+    models_json: Optional[str] = None
     visit_datetime: datetime
 
     class Config:
@@ -84,6 +116,7 @@ class HistoryItem(BaseModel):
     mother_age: Optional[int]
     result: str
     probability: float
+    models_json: Optional[str] = None
     visit_datetime: datetime
     is_hidden: bool = False
 

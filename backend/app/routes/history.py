@@ -74,6 +74,7 @@ async def get_history(
                 mother_age=p.mother_age,
                 result=p.result,
                 probability=p.probability,
+                models_json=p.models_json,
                 visit_datetime=p.visit_datetime
             )
             for p in predictions
@@ -134,6 +135,7 @@ async def get_prediction_detail(
             mother_age=prediction.mother_age,
             result=prediction.result,
             probability=prediction.probability,
+            models_json=prediction.models_json,
             visit_datetime=prediction.visit_datetime
         )
     

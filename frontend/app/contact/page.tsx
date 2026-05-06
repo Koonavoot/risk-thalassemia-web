@@ -166,9 +166,12 @@ export default function ContactPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-sm font-medium text-navy-800">Medical Researcher</h3>
+                  <h3 className="text-sm font-medium text-navy-800">Researcher Team</h3>
                   <p className="text-sm text-slate-600">
-                    Assoc.Prof. Maethaphan Kitporntheranunt, MD
+                    Somphop Rodamporn,<br />
+                    Maethaphan Kitporntheranunt, MD*,<br />
+                    Watcharachai Wiriyasuttiwong,<br />
+                    Koonavoot Kaewnopparat
                   </p>
                 </div>
               </div>
@@ -198,7 +201,8 @@ export default function ContactPage() {
                 <div className="ml-4">
                   <h3 className="text-sm font-medium text-navy-800">Address</h3>
                   <p className="text-sm text-slate-600">
-                    Faculty of Medicine, Srinakharinwirot University,<br />
+                    Faculty of Engineering and Faculty of Medicine,<br />
+                    Srinakharinwirot University,<br />
                     Nakhon Nayok, 26120, Thailand.
                   </p>
                 </div>
@@ -221,7 +225,7 @@ export default function ContactPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-sm font-medium text-navy-800">Email</h3>
+                  <h3 className="text-sm font-medium text-navy-800">*Email</h3>
                   <p className="text-sm text-slate-600">
                     mtp_swu@hotmail.com
                   </p>

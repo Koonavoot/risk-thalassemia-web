@@ -14,3 +14,5 @@ numpy>=1.24.0
 bcrypt>=4.0.0
 ngboost>=0.5.1
 xgboost>=2.0.0
+torch>=2.0.0
+pandas>=2.0.0

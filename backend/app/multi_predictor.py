@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 from pathlib import Path
 from typing import List, Dict, Tuple, Any
-
+import math
 logger = logging.getLogger(__name__)
 
 MODEL_VERSION = "3.0.0-multi"
@@ -153,12 +153,13 @@ class FTTransformer(nn.Module):
     FT-Transformer matching FT_Transformer_full.pt checkpoint.
 
     Architecture (from state_dict):
-      cls_embedding   : Parameter(96,)
-      cont_embeddings : Linear per continuous feature (weight: [8, 96], bias: [8, 96])
-      cat_embeddings  : Embedding per categorical feature (2 embeddings, each [2, 96])
-                        + shared bias [2, 96]
-      backbone.blocks : 3 blocks of (attention + FFN)
-      backbone.output : LayerNorm(96) + Linear(96, 1)
+      cls_embedding   : Parameter(d_model)
+      periodic_coeff  : Parameter(n_cont, d_model // 2) (from num_emb state)
+      cat_embeddings  : Embedding per categorical feature
+                        + shared cat_bias
+      backbone_blocks : List of FTTransformerBlock (attention + FFN)
+      output_norm     : LayerNorm(d_model)
+      output_linear   : Linear(d_model, 1)
     """
 
     def __init__(
@@ -183,9 +184,9 @@ class FTTransformer(nn.Module):
         # CLS token embedding
         self.cls_embedding = nn.Parameter(torch.zeros(d_model))
 
-        # Continuous feature embeddings (per-feature linear)
-        self.cont_weight = nn.Parameter(torch.zeros(n_cont, d_model))
-        self.cont_bias = nn.Parameter(torch.zeros(n_cont, d_model))
+        # Continuous feature embeddings using PeriodicEmbedding
+        # The trained model uses PeriodicEmbedding(n_cont, d_model)
+        self.periodic_coeff = nn.Parameter(torch.zeros(n_cont, d_model // 2))
 
         # Categorical embeddings
         self.cat_embeddings = nn.ModuleList([
@@ -220,9 +221,10 @@ class FTTransformer(nn.Module):
         # CLS token
         cls = self.cls_embedding.unsqueeze(0).expand(B, -1).unsqueeze(1)  # (B, 1, d)
 
-        # Continuous embeddings: each feature gets weight*value + bias
-        # x_cont: (B, n_cont) -> (B, n_cont, 1) * (n_cont, d) -> (B, n_cont, d)
-        cont_emb = x_cont.unsqueeze(-1) * self.cont_weight.unsqueeze(0) + self.cont_bias.unsqueeze(0)
+        # Continuous embeddings via PeriodicEmbedding
+        # x_cont: (B, n_cont) -> (B, n_cont, 1) * (n_cont, d_model//2) -> (B, n_cont, d_model//2)
+        x_cont_proj = x_cont.unsqueeze(-1) * self.periodic_coeff.unsqueeze(0) * 2 * math.pi
+        cont_emb = torch.cat([torch.sin(x_cont_proj), torch.cos(x_cont_proj)], dim=-1)
 
         # Categorical embeddings
         cat_embs = []
@@ -244,17 +246,14 @@ class FTTransformer(nn.Module):
         cls_out = self.output_norm(cls_out)
         return self.output_linear(cls_out)  # (B, 1)
 
-    def load_checkpoint(self, state_dict: dict):
+    def load_checkpoint(self, state_dict: dict, num_emb_state: dict = None):
         """Load state dict with key mapping from checkpoint format."""
         new_state = {}
 
+        # Handle main model weights
         for key, value in state_dict.items():
             if key == "cls_embedding.weight":
                 new_state["cls_embedding"] = value
-            elif key == "cont_embeddings.weight":
-                new_state["cont_weight"] = value
-            elif key == "cont_embeddings.bias":
-                new_state["cont_bias"] = value
             elif key == "cat_embeddings.bias":
                 new_state["cat_bias"] = value
             elif key.startswith("cat_embeddings.embeddings."):
@@ -276,7 +275,12 @@ class FTTransformer(nn.Module):
             else:
                 new_state[key] = value
 
-        self.load_state_dict(new_state)
+        # Handle periodic embedding weights if provided
+        if num_emb_state and "coeff" in num_emb_state:
+            new_state["periodic_coeff"] = num_emb_state["coeff"]
+
+        # Load with strict=False to allow missing periodic_coeff if not in this dict
+        self.load_state_dict(new_state, strict=False)
 
 
 # ---------------------------------------------------------------------------
@@ -286,8 +290,10 @@ class FTTransformer(nn.Module):
 class MultiModelPredictor:
     """Predictor that loads and runs all 5 models."""
 
-    # Default thresholds
-    TREE_THRESHOLD = 0.5
+    # Thresholds from model_selected.py
+    RF_THRESHOLD = 0.6435
+    XGB_THRESHOLD = 0.2179
+    NGB_THRESHOLD = 0.4951
     TRANSFORMER_THRESHOLD = 0.1  # overridden from configs
 
     MODEL_NAMES = [
@@ -387,8 +393,11 @@ class MultiModelPredictor:
             weights_only=True,
         )
         if "model" in ft_state:
-            ft_state = ft_state["model"]
-        self.ft_model.load_checkpoint(ft_state)
+            num_emb_state = ft_state.get("num_emb")
+            self.ft_model.load_checkpoint(ft_state["model"], num_emb_state=num_emb_state)
+        else:
+            self.ft_model.load_checkpoint(ft_state)
+            
         self.ft_model.eval()
         logger.info("FT-Transformer loaded")
 
@@ -526,20 +535,20 @@ class MultiModelPredictor:
         rf_proba = self.rf_model.predict_proba(tree_features)[0, 1]
         results.append({
             "model_name": "Random Forest",
-            "result": self._resolve_label(rf_proba, self.TREE_THRESHOLD, self.tree_y_encoder),
+            "result": self._resolve_label(rf_proba, self.RF_THRESHOLD, self.tree_y_encoder),
             "probability": float(rf_proba),
             "probability_percent": round(float(rf_proba) * 100, 2),
-            "threshold_used": self.TREE_THRESHOLD,
+            "threshold_used": self.RF_THRESHOLD,
         })
 
         # XGBoost
         xgb_proba = self.xgb_model.predict_proba(tree_features)[0, 1]
         results.append({
             "model_name": "XGBoost",
-            "result": self._resolve_label(xgb_proba, self.TREE_THRESHOLD, self.tree_y_encoder),
+            "result": self._resolve_label(xgb_proba, self.XGB_THRESHOLD, self.tree_y_encoder),
             "probability": float(xgb_proba),
             "probability_percent": round(float(xgb_proba) * 100, 2),
-            "threshold_used": self.TREE_THRESHOLD,
+            "threshold_used": self.XGB_THRESHOLD,
         })
 
         # NGBoost
@@ -547,10 +556,10 @@ class MultiModelPredictor:
         ngb_proba = float(ngb_dist.params["p1"][0])
         results.append({
             "model_name": "NGBoost",
-            "result": self._resolve_label(ngb_proba, self.TREE_THRESHOLD, self.tree_y_encoder),
+            "result": self._resolve_label(ngb_proba, self.NGB_THRESHOLD, self.tree_y_encoder),
             "probability": ngb_proba,
             "probability_percent": round(ngb_proba * 100, 2),
-            "threshold_used": self.TREE_THRESHOLD,
+            "threshold_used": self.NGB_THRESHOLD,
         })
 
         # --- Transformer models ---

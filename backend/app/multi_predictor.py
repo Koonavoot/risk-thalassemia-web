@@ -71,13 +71,13 @@ class FTTransformerBlock(nn.Module):
     """Single FT-Transformer block with attention and FFN."""
 
     def __init__(self, d_model: int, nhead: int, d_ffn: int, dropout: float,
-                 has_attention_norm: bool = True):
+                 has_attention_norm: bool = True, act_type: str = "gelu"):
         super().__init__()
         # Multi-head attention (manual W_q/W_k/W_v/W_out)
         self.attention = FTMultiheadAttention(d_model, nhead, dropout)
         # FFN
         self.ffn_normalization = nn.LayerNorm(d_model)
-        self.ffn = FTTransformerFFN(d_model, d_ffn, dropout)
+        self.ffn = FTTransformerFFN(d_model, d_ffn, dropout, act_type=act_type)
         # Some blocks have attention_normalization, some don't (block 0 doesn't)
         self.has_attention_norm = has_attention_norm
         if has_attention_norm:
@@ -124,27 +124,26 @@ class FTMultiheadAttention(nn.Module):
 
 
 class FTTransformerFFN(nn.Module):
-    """FFN with ReGLU activation matching FT-Transformer checkpoint.
+    """FFN with customizable activation (GELU or ReGLU)."""
 
-    linear1: (d_model -> d_ffn*2) — split into gate and value
-    linear2: (d_ffn -> d_model)
-
-    From the state dict:
-      linear1.weight: (768, 96)  → d_ffn*2 = 768, so d_ffn_half = 384
-      linear2.weight: (96, 384)
-    """
-
-    def __init__(self, d_model: int, d_ffn_times2: int, dropout: float = 0.0):
+    def __init__(self, d_model: int, d_ffn: int, dropout: float = 0.0, act_type: str = "gelu"):
         super().__init__()
-        self.linear1 = nn.Linear(d_model, d_ffn_times2)
-        self.linear2 = nn.Linear(d_ffn_times2 // 2, d_model)
+        self.act_type = act_type
+        if self.act_type == "reglu":
+            self.linear1 = nn.Linear(d_model, d_ffn * 2)
+            self.linear2 = nn.Linear(d_ffn, d_model)
+        else:
+            self.linear1 = nn.Linear(d_model, d_ffn)
+            self.linear2 = nn.Linear(d_ffn, d_model)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.linear1(x)
-        # ReGLU: split in half, apply ReLU gate
-        gate, value = x.chunk(2, dim=-1)
-        x = torch.relu(gate) * value
+        if self.act_type == "reglu":
+            gate, value = x.chunk(2, dim=-1)
+            x = torch.relu(gate) * value
+        else:
+            x = torch.nn.functional.gelu(x)
         x = self.dropout(x)
         return self.linear2(x)
 
@@ -169,8 +168,9 @@ class FTTransformer(nn.Module):
         d_model: int = 96,
         nhead: int = 4,
         n_blocks: int = 3,
-        d_ffn_times2: int = 768,
+        d_ffn: int = 128,
         dropout: float = 0.2,
+        act_type: str = "gelu",
     ):
         super().__init__()
         if cat_cardinalities is None:
@@ -198,8 +198,8 @@ class FTTransformer(nn.Module):
         for i in range(n_blocks):
             has_attn_norm = (i > 0)  # block 0 has no attention_normalization
             blocks.append(
-                FTTransformerBlock(d_model, nhead, d_ffn_times2, dropout,
-                                   has_attention_norm=has_attn_norm)
+                FTTransformerBlock(d_model, nhead, d_ffn, dropout,
+                                   has_attention_norm=has_attn_norm, act_type=act_type)
             )
         self.backbone_blocks = nn.ModuleList(blocks)
 
@@ -362,25 +362,32 @@ class MultiModelPredictor:
             os.path.join(self.transformer_dir, "transformer_y_encoder.pkl"))
 
         # Extract threshold
-        self.ft_threshold = self.trans_configs.get("threshold", 0.1)
-        self.meta_threshold = self.trans_configs.get("threshold", 0.1)
+        self.ft_threshold = self.trans_configs.get("ft_threshold", self.trans_configs.get("threshold", 0.1))
+        self.meta_threshold = self.trans_configs.get("meta_threshold", self.trans_configs.get("threshold", 0.1))
 
         # FT-Transformer
         ft_cfg = self.trans_configs["ft_config"]
+        d_ffn = int(ft_cfg["d_block"] * ft_cfg["ffn_d_hidden_multiplier"])
+        num_cont = len(self.trans_configs.get("num_cols", []))
+        cat_cards = self.trans_configs.get("cat_cards", self.trans_configs.get("cat_cardinalities", []))
+
         self.ft_model = FTTransformer(
-            n_cont=self.trans_configs["n_cont_features"],
-            cat_cardinalities=self.trans_configs["cat_cardinalities"],
+            n_cont=num_cont,
+            cat_cardinalities=cat_cards,
             d_model=ft_cfg["d_block"],
             nhead=ft_cfg["attention_n_heads"],
             n_blocks=ft_cfg["n_blocks"],
-            d_ffn_times2=768,  # from state dict: linear1 weight shape (768, 96)
+            d_ffn=d_ffn,
             dropout=ft_cfg["dropout"],
+            act_type=ft_cfg.get("act_type", "gelu"),
         )
         ft_state = torch.load(
             os.path.join(self.transformer_dir, "FT_Transformer_full.pt"),
             map_location=torch.device("cpu"),
             weights_only=True,
         )
+        if "model" in ft_state:
+            ft_state = ft_state["model"]
         self.ft_model.load_checkpoint(ft_state)
         self.ft_model.eval()
         logger.info("FT-Transformer loaded")
@@ -392,7 +399,7 @@ class MultiModelPredictor:
             d_model=meta_cfg["d_block"],
             nhead=meta_cfg["attention_n_heads"],
             num_layers=meta_cfg["n_blocks"],
-            dim_feedforward=1024,  # from state dict: linear1 weight shape (1024, 256)
+            dim_feedforward=meta_cfg["d_block"] * 4,
             dropout=meta_cfg["dropout"],
         )
         meta_state = torch.load(
@@ -400,6 +407,8 @@ class MultiModelPredictor:
             map_location=torch.device("cpu"),
             weights_only=True,
         )
+        if "model" in meta_state:
+            meta_state = meta_state["model"]
         self.meta_model.load_state_dict(meta_state)
         self.meta_model.eval()
         logger.info("Meta Tabular Transformer loaded")

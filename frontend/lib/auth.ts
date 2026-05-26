@@ -16,6 +16,21 @@ export function setToken(token: string): void {
     document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax; max-age=${60 * 60 * 8}`;
 }
 
+/**
+ * Set token then navigate — delays navigation by one event-loop tick so the
+ * browser has time to flush the cookie before the page unloads.
+ * This prevents the race condition where middleware reads the cookie before
+ * it has been committed, causing a redirect back to /login.
+ */
+export function setTokenAndNavigate(token: string, destination: string): void {
+    setToken(token);
+    // Use setTimeout(0) to yield control back to the browser so it can
+    // commit localStorage + cookie writes before the hard navigation fires.
+    setTimeout(() => {
+        window.location.href = destination;
+    }, 0);
+}
+
 export function removeToken(): void {
     localStorage.removeItem(TOKEN_KEY);
     // Expire the cookie

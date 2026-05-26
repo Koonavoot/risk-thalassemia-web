@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import { setToken } from "@/lib/auth";
+import { setTokenAndNavigate } from "@/lib/auth";
 
 // ====== Inner component ที่ใช้ useSearchParams (ต้องอยู่ใน Suspense) ======
 function LoginForm() {
@@ -27,8 +27,7 @@ function LoginForm() {
                 "/api/auth/login",
                 { username, password }
             );
-            setToken(response.data.access_token);
-            window.location.href = from;  // hard navigate ให้ cookie ถูก send ใน request ใหม่
+            setTokenAndNavigate(response.data.access_token, from);
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 const detail = err.response?.data?.detail;

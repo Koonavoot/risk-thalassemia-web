@@ -16,7 +16,13 @@ const navItems = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [loggedIn, setLoggedIn] = useState(false);
+  // Initialise from localStorage directly so the correct auth state is
+  // available on the very first render \u2014 avoids the flash of "Login" button
+  // that appears briefly after a successful login redirect.
+  const [loggedIn, setLoggedIn] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return isLoggedIn();
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Sync login state and close menu on route change

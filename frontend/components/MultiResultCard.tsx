@@ -21,7 +21,7 @@ const MODEL_CATEGORIES: Record<string, string[]> = {
 
 const MODEL_ICONS: Record<string, string> = {
   "Random Forest": "",
-  "XGBoost": "⚡",
+  "XGBoost": "",
   "NGBoost": "",
   "FT-Transformer": "",
   "Meta Tabular FT-Transformer": "",
@@ -113,9 +113,6 @@ export default function MultiResultCard({
                       >
                         {/* Model Name */}
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="text-lg">
-                            {MODEL_ICONS[model.model_name] || "🤖"}
-                          </span>
                           <span className="text-sm font-semibold text-navy-800 truncate">
                             {model.model_name}
                           </span>

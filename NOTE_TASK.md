@@ -495,3 +495,61 @@ Next.js server-side rewrite ใช้ internal URL ได้ ส่วน client
 | View History | ✅ ทำงาน |
 | Delete (admin) / Hide (user) | ✅ ทำงาน |
 | Auto-renew SSL | ✅ Certbot ตั้งไว้แล้ว |
+
+## Session (29 May 2026) - Model Serialization & Next.js Race Condition
+
+### 1. แก้ปัญหา Model Serialization & Compatibility (Scikit-Learn & PyTorch)
+พบปัญหาโหลด Model ไม่ได้ในฝั่ง Backend (Production) เนื่องจาก 2 สาเหตุหลัก:
+
+- **ปัญหา Scikit-Learn 1.8.0 vs 1.7.x:**
+  การอัปเกรด `scikit-learn` เป็น 1.8.0 ทำให้ C-structure ของ Decision Tree เปลี่ยนแปลง ส่งผลให้ไฟล์ `.pkl` (Tree-based models) จากเวอร์ชันเก่า (1.7.2) ใช้งานไม่ได้
+  *แนวทาง:* ต้องนำสคริปต์ `model_selected.py` ไปรันใหม่บนสภาพแวดล้อมที่เป็น `scikit-learn 1.8.0` เพื่อสร้างไฟล์ `.pkl` ออกมาใหม่
+
+- **ปัญหา PyTorch Transformer Architecture Mismatch:**
+  เกิดข้อผิดพลาด `Missing key(s) in state_dict: "cont_weight", "cont_bias"` ในโมเดล `FTTransformer`
+  - *สาเหตุ:* โมเดลปัจจุบันบน Production (ไฟล์ `multi_predictor.py`) ใช้ `nn.Linear` ธรรมดาสำหรับ Continuous features แต่โมเดลชุดใหม่ที่เทรนด้วย `rtdl-revisiting-models` มีการใช้ **Numerical Embeddings** (`num_emb`) ทำให้โครงสร้างเลเยอร์และ state_dict ไม่ตรงกัน
+  - *สิ่งที่ปรับปรุงแล้ว:* Refactor โค้ดใน `multi_predictor.py` ให้รองรับ Activation Function ที่เป็น Dynamic (GELU/ReGLU), แก้การตั้งค่า Dimension ของ FFN, และทำ State Dict Mapping
+  - *งานถัดไป (Next Steps):* 
+    1. ต้องแก้ไข `FTTransformer` ใน `multi_predictor.py` ให้รองรับ Numerical Embeddings อย่างสมบูรณ์ เพื่อให้โหลด state_dict ได้
+    2. หรืออีกทางเลือกคือเพิ่ม `rtdl-revisiting-models` ลงใน `requirements.txt` ของ Backend เพื่อใช้ไลบรารีต้นฉบับไปเลยหากจำเป็น
+
+### 2. วิเคราะห์และอธิบายปัญหา Next.js Middleware อ่าน Cookie ไม่เจอ
+พบ Bug การเกิด **Race Condition** ฝั่ง Frontend ในจังหวะเปลี่ยนหน้าเว็บ:
+- *ปัญหาที่เกิด:* การเซ็ตค่า URL ด้วย `window.location.href` ทำงานเร็วเกินไป และทำงานไปก่อนที่เบราว์เซอร์จะเขียน (Commit) คุกกี้ลง Storage เสร็จสมบูรณ์ ส่งผลให้ Request ที่ยิงไปยังเซิร์ฟเวอร์ไม่มี Header Cookie แนบไปด้วย
+- *ผลกระทบ:* Middleware ของ Next.js ที่ทำงานอยู่ฝั่ง Server จึงอ่าน Cookie ไม่เจอ (มองว่าเป็น Unauthorized)
+- *แนวทางแก้ไข:* ใช้ `setTimeout` หน่วงเวลาเล็กน้อย (ประมาณ 50-100ms) ก่อนที่จะสั่งเปลี่ยนหน้า เพื่อให้ Browser ทำการ commit cookie ให้เสร็จ หรือเปลี่ยนไปใช้ Next.js Router (`useRouter().push`) เพื่อจัดการ State/Navigation ได้ดีและปลอดภัยกว่า
+
+### 3. แก้ปัญหา Login ไม่ได้ — Database Container หยุดทำงาน (29 พฤษภาคม 2026)
+
+**ปัญหาที่พบ:** ไม่สามารถ Login ได้ผ่าน https://thalassemiaai.com/login โดยแสดงข้อผิดพลาด "Incorrect username or password"
+
+**สาเหตุ:** Container ฐานข้อมูล PostgreSQL (`thalassemia_db`) หยุดทำงาน (Exited code 137 — ถูก Kill หรือ OOM) เมื่อ 3 วันก่อน
+- Backend ไม่สามารถ Query ตาราง `users` ได้ ส่งผลให้ทุก Login Request ล้มเหลว
+- Backend ยังทำงานอยู่แต่ถูก restart ซ้ำเมื่อ DB Connection timeout
+
+**ขั้นตอนการแก้ไข:**
+1. ตรวจสอบ `docker ps -a` พบว่า `thalassemia_db` อยู่ในสถานะ `Exited (137)`
+2. ลอง start DB container เพียง container เดียว → Docker Network เสีย (containers อยู่คนละ network)
+3. แก้ไขด้วยคำสั่ง:
+   ```bash
+   cd /root/risk-thalassemia-web
+   docker compose down
+   docker compose up -d
+   ```
+   เพื่อ recreate ทุก container พร้อม Network ใหม่
+4. ตรวจสอบว่า DB healthy, Backend startup สำเร็จ (`Database tables created successfully`)
+5. ทดสอบ Login ผ่าน API → สำเร็จ
+6. ทดสอบ Login ผ่าน Website → redirect ไปหน้า `/predict` สำเร็จ
+
+**User ใหม่ที่สร้าง:**
+| Username    | Password       | Status |
+|------------|----------------|--------|
+| doctor_02  | ThalDoc@2026   | ✅ Active |
+
+**รายชื่อ Users ทั้งหมดในระบบ:**
+| ID | Username    | Active |
+|----|------------|--------|
+| 1  | admin       | ✅     |
+| 2  | doctor      | ✅     |
+| 3  | doctor_01   | ✅     |
+| 4  | doctor_02   | ✅     |

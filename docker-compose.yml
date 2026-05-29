@@ -3,6 +3,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: thalassemia_db
+    restart: unless-stopped
     command: >
       postgres
       -c hba_file=/etc/postgresql/pg_hba.conf
@@ -26,7 +27,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
+        reservations:
+          memory: 64M
 
   # FastAPI Backend
   backend:
@@ -34,6 +37,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: thalassemia_backend
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/thalassemia_db
       MODEL_PATH: model/Meta_Tabular_final.pt
@@ -41,6 +45,9 @@ services:
       SECRET_KEY: "change-this-to-a-random-secret-key-on-production"
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 480
+      # Limit PyTorch threads to reduce memory usage
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
     ports:
       - "8000:8000"
     depends_on:
@@ -48,10 +55,18 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/model:/app/model
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 2560M
+        reservations:
+          memory: 512M
 
   # Next.js Frontend
   frontend:
@@ -61,6 +76,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://backend:8000
     container_name: thalassemia_frontend
+    restart: unless-stopped
     ports: 
       - "3000:3000"
     depends_on:
@@ -70,7 +86,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
+        reservations:
+          memory: 64M
 
 volumes:
   postgres_data:

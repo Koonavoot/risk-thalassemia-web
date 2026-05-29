@@ -8,6 +8,7 @@ Loads and runs five models simultaneously:
 Each model returns its own risk prediction and probability.
 """
 import os
+import gc
 import logging
 import joblib
 import numpy as np
@@ -17,6 +18,20 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Any
 import math
 logger = logging.getLogger(__name__)
+
+
+def _log_memory_usage(label: str):
+    """Log current process memory usage for debugging OOM issues."""
+    try:
+        import resource
+        mem_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # macOS: bytes, Linux: KB
+        # On Linux ru_maxrss is in KB, on macOS it's in bytes
+        import sys
+        if sys.platform == 'darwin':
+            mem_mb /= 1024  # convert bytes to MB
+        logger.info(f"[Memory] {label}: ~{mem_mb:.0f} MB (peak RSS)")
+    except Exception:
+        pass
 
 MODEL_VERSION = "3.0.0-multi"
 
@@ -334,13 +349,28 @@ class MultiModelPredictor:
         self._loaded = False
 
     def load_models(self):
-        """Load all models and preprocessors."""
+        """Load all models and preprocessors with memory-efficient staged loading."""
         if self._loaded:
             return
 
-        logger.info("Loading all 5 models...")
+        logger.info("Loading all 5 models (staged for memory efficiency)...")
+        _log_memory_usage("Before model loading")
 
-        # --- Tree-based ---
+        self._load_tree_models()
+        gc.collect()  # Free transient loading memory before next stage
+        _log_memory_usage("After tree models + GC")
+
+        self._load_transformer_models()
+        gc.collect()
+        _log_memory_usage("After transformer models + GC")
+
+        self._loaded = True
+        logger.info("All 5 models loaded successfully")
+
+    def _load_tree_models(self):
+        """Load tree-based models and their preprocessors."""
+        logger.info("Loading tree-based models...")
+
         self.tree_scaler = joblib.load(
             os.path.join(self.treebase_dir, "scaler.pkl"))
         self.tree_label_encoders = joblib.load(
@@ -355,9 +385,12 @@ class MultiModelPredictor:
         self.ngb_model = joblib.load(
             os.path.join(self.treebase_dir, "NGBoost_full.pkl"))
 
-        logger.info("Tree-based models loaded")
+        logger.info("Tree-based models loaded (RF, XGB, NGB)")
 
-        # --- Transformer ---
+    def _load_transformer_models(self):
+        """Load transformer models and their preprocessors."""
+        logger.info("Loading transformer models...")
+
         self.trans_configs = joblib.load(
             os.path.join(self.transformer_dir, "transformer_configs.pkl"))
         self.trans_scaler = joblib.load(
@@ -367,7 +400,7 @@ class MultiModelPredictor:
         self.trans_y_encoder = joblib.load(
             os.path.join(self.transformer_dir, "transformer_y_encoder.pkl"))
 
-        # Extract threshold
+        # Extract thresholds from config
         self.ft_threshold = self.trans_configs.get("ft_threshold", self.trans_configs.get("threshold", 0.1))
         self.meta_threshold = self.trans_configs.get("meta_threshold", self.trans_configs.get("threshold", 0.1))
 
@@ -397,7 +430,8 @@ class MultiModelPredictor:
             self.ft_model.load_checkpoint(ft_state["model"], num_emb_state=num_emb_state)
         else:
             self.ft_model.load_checkpoint(ft_state)
-            
+        del ft_state  # Free checkpoint dict immediately
+
         self.ft_model.eval()
         logger.info("FT-Transformer loaded")
 
@@ -419,11 +453,10 @@ class MultiModelPredictor:
         if "model" in meta_state:
             meta_state = meta_state["model"]
         self.meta_model.load_state_dict(meta_state)
+        del meta_state  # Free checkpoint dict immediately
+
         self.meta_model.eval()
         logger.info("Meta Tabular Transformer loaded")
-
-        self._loaded = True
-        logger.info("All 5 models loaded successfully")
 
     # ------------------------------------------------------------------
     # Preprocessing

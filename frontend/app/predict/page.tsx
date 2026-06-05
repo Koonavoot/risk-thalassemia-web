@@ -200,7 +200,7 @@ export default function PredictPage() {
         <FormInput
           label="Hb (g/dL)"
           type="number"
-          step="1.0"
+          step="any"
           {...register(`${type}.hb`)}
           error={parentErrors?.hb?.message}
           required
@@ -208,7 +208,7 @@ export default function PredictPage() {
         <FormInput
           label="Hct (%)"
           type="number"
-          step="1.0"
+          step="any"
           {...register(`${type}.hct`)}
           error={parentErrors?.hct?.message}
           required
@@ -216,7 +216,7 @@ export default function PredictPage() {
         <FormInput
           label="MCV (fL)"
           type="number"
-          step="1.0"
+          step="any"
           {...register(`${type}.mcv`)}
           error={parentErrors?.mcv?.message}
           required
@@ -224,7 +224,7 @@ export default function PredictPage() {
         <FormInput
           label="MCH (pg)"
           type="number"
-          step="1.0"
+          step="any"
           {...register(`${type}.mch`)}
           error={parentErrors?.mch?.message}
           required

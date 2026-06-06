@@ -12,7 +12,11 @@ interface FormSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
-  function FormInput({ label, error, className = "", ...props }, ref) {
+  function FormInput({ label, error, className = "", type, step, ...props }, ref) {
+    // For number inputs, always default to step="any" to allow decimal values
+    // This prevents browser validation errors like "nearest valid values are 10 and 11"
+    const resolvedStep = type === "number" ? (step ?? "any") : step;
+
     return (
       <div className="mb-4">
         <label className="form-label">
@@ -22,7 +26,9 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         <input
           ref={ref}
           className={`form-input ${error ? "border-red-500" : ""} ${className}`}
+          type={type}
           {...props}
+          step={resolvedStep}
         />
         {error && <p className="form-error">{error}</p>}
       </div>

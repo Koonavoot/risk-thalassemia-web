@@ -30,10 +30,18 @@ function LoginForm() {
             setTokenAndNavigate(response.data.access_token, from);
         } catch (err) {
             if (axios.isAxiosError(err)) {
+                const status = err.response?.status;
                 const detail = err.response?.data?.detail;
-                setError(
-                    typeof detail === "string" ? detail : "Incorrect username or password"
-                );
+                const errorMsg = err.response?.data?.error;
+                if (status === 500 || status === 503) {
+                    setError("Server error — กรุณาลองใหม่อีกครั้ง หากยังไม่ได้โปรดติดต่อผู้ดูแลระบบ");
+                } else if (typeof detail === "string") {
+                    setError(detail);
+                } else if (typeof errorMsg === "string") {
+                    setError(errorMsg);
+                } else {
+                    setError("Incorrect username or password");
+                }
             } else {
                 setError("An unexpected error occurred");
             }

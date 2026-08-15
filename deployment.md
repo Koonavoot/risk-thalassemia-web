@@ -337,6 +337,7 @@ docker compose up -d --build           # ถ้าแก้ทั้งคู่
 
 ```bash
 # เข้า psql ของ container
+# หมายเหตุ: ถ้า psql -U postgres ล้มเหลว ให้ดู Troubleshooting section 6.2
 docker exec -it thalassemia_db psql -U postgres -d thalassemia_db
 
 # รัน ALTER TABLE (ตัวอย่าง)
@@ -424,6 +425,14 @@ cat backend/.env | grep DATABASE_URL
 # ตรวจสอบ DB health
 docker exec -it thalassemia_db pg_isready -U postgres
 
+# ตรวจสอบว่า postgres role login ได้
+docker exec -it thalassemia_db psql -U postgres -d thalassemia_db -c "SELECT 1"
+
+# ถ้าได้ error "role postgres is not permitted to log in":
+# แก้ด้วยการ unlock role:
+docker exec -it thalassemia_db sh -c 'psql -c "ALTER ROLE postgres WITH LOGIN;"'
+docker compose restart backend
+
 # ดู DB logs
 docker compose logs db
 
@@ -432,6 +441,9 @@ docker compose restart db
 # รอ ~10 วินาที แล้ว restart backend ด้วย
 docker compose restart backend
 ```
+
+> **หมายเหตุ:** ตั้งแต่ August 2026 docker-compose.yml ไม่ mount custom pg_hba.conf/postgresql.conf แล้ว
+> ใช้ `-c` command parameters แทน เพื่อป้องกัน entrypoint script lock postgres role เมื่อ restart
 
 ### 6.3 Frontend ขึ้น SSL Error
 

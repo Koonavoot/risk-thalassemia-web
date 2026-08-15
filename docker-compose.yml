@@ -4,23 +4,35 @@ services:
     image: postgres:15-alpine
     container_name: thalassemia_db
     restart: unless-stopped
+    # Use -c parameters instead of mounting pg_hba.conf/postgresql.conf
+    # to avoid conflicts with Docker entrypoint that can lock the postgres role
     command: >
       postgres
-      -c hba_file=/etc/postgresql/pg_hba.conf
-      -c config_file=/etc/postgresql/postgresql.conf
+      -c shared_buffers=64MB
+      -c work_mem=2MB
+      -c maintenance_work_mem=32MB
+      -c effective_cache_size=256MB
+      -c max_connections=20
+      -c wal_buffers=4MB
+      -c checkpoint_completion_target=0.9
+      -c log_min_duration_statement=1000
+      -c log_statement=none
+      -c temp_file_limit=256MB
+      -c listen_addresses='*'
+      -c password_encryption=md5
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: thalassemia_db
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: "--auth-host=md5 --auth-local=trust"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./backend/pg_hba.conf:/etc/postgresql/pg_hba.conf
-      - ./backend/postgresql.conf:/etc/postgresql/postgresql.conf
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d thalassemia_db -c 'SELECT 1'" ]
       interval: 5s
       timeout: 5s
       retries: 5

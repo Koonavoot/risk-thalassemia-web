@@ -770,3 +770,95 @@ docker compose up -d --build                     # rebuild all
 ---
 
 *Session log เพิ่มเมื่อ: August 2026*
+
+---
+
+### Session: August 2026 (2) — PostgreSQL "role postgres is not permitted to log in" — Root Cause & Permanent Fix
+
+#### สรุปปัญหา
+
+Login ไม่ได้บน production — Frontend แสดง "Incorrect username or password" แต่สาเหตุจริงคือ **Database ใช้ไม่ได้** (role `postgres` ถูก lock ไม่ให้ login)
+
+#### Root Cause
+
+**การ mount ไฟล์ `pg_hba.conf` และ `postgresql.conf` เข้า container ขัดแย้งกับ Docker entrypoint script ของ `postgres:15-alpine`**
+
+เมื่อ container restart:
+1. Entrypoint script ตรวจสอบ PGDATA → เห็นว่ามีข้อมูลแล้ว → ข้าม initdb
+2. แต่ entrypoint ยัง ALTER ROLE หรือ reset config บาง settings
+3. Custom pg_hba.conf ถูก mount ทับ → config ชนกัน → postgres role ถูก lock
+
+#### สิ่งที่แก้ไข
+
+| ไฟล์ | สิ่งที่ทำ |
+|------|----------|
+| `docker-compose.yml` | เอา mounted pg_hba.conf/postgresql.conf ออก, ใช้ `-c` parameters แทน |
+| `docker-compose.yml` | เพิ่ม `POSTGRES_HOST_AUTH_METHOD: md5` และ `POSTGRES_INITDB_ARGS` |
+| `docker-compose.yml` | แก้ healthcheck ให้เช็ค `psql -c 'SELECT 1'` ด้วย (ไม่ใช่แค่ `pg_isready`) |
+| `docker-compose.yml` | เพิ่ม `max_connections=20` (เดิม 10 ต่ำเกินไป) |
+| `backend/app/database.py` | เพิ่ม connection pool limits (pool_size=3, max_overflow=5) |
+| `frontend/app/login/page.tsx` | แก้ error handling ให้แยก 500/503 ออกจาก 401 |
+| `deployment.md` | เพิ่มคำเตือนและ troubleshooting steps |
+
+#### ❌ Anti-Pattern: อย่า mount custom pg_hba.conf/postgresql.conf เข้า PostgreSQL Docker container
+
+```yaml
+# ❌ อย่าทำ — ชนกับ entrypoint script, ทำให้ role ถูก lock เมื่อ restart
+volumes:
+  - ./backend/pg_hba.conf:/etc/postgresql/pg_hba.conf
+  - ./backend/postgresql.conf:/etc/postgresql/postgresql.conf
+command: postgres -c hba_file=/etc/postgresql/pg_hba.conf -c config_file=/etc/postgresql/postgresql.conf
+
+# ✅ ใช้ -c parameters แทน
+command: >
+  postgres
+  -c shared_buffers=64MB
+  -c max_connections=20
+  -c listen_addresses='*'
+  -c password_encryption=md5
+```
+
+#### ❌ Anti-Pattern: อย่าใช้ `pg_isready` เป็น healthcheck ตัวเดียว
+
+```yaml
+# ❌ pg_isready แค่เช็คว่า server รับ connection ได้ ไม่ได้เช็คว่า login สำเร็จ
+healthcheck:
+  test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+
+# ✅ เช็คว่า login + query ได้จริง
+healthcheck:
+  test: [ "CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d thalassemia_db -c 'SELECT 1'" ]
+```
+
+#### ❌ Anti-Pattern: Frontend แสดง error ผิด (500 แต่บอกว่า password ผิด)
+
+```typescript
+// ❌ ถ้า server ตอบ { error: "Internal Server Error" } (ไม่มี detail key)
+// typeof detail === "string" จะเป็น false → แสดง fallback "Incorrect username or password"
+const detail = err.response?.data?.detail;
+setError(typeof detail === "string" ? detail : "Incorrect username or password");
+
+// ✅ เช็ค HTTP status ก่อน
+const status = err.response?.status;
+if (status === 500 || status === 503) {
+    setError("Server error — กรุณาลองใหม่อีกครั้ง");
+} else if (typeof detail === "string") {
+    setError(detail);
+}
+```
+
+#### 🔧 Emergency Fix (ถ้าเกิดซ้ำ)
+
+```bash
+# Unlock postgres role
+docker exec -it thalassemia_db sh -c 'psql -c "ALTER ROLE postgres WITH LOGIN;"'
+docker compose restart backend
+
+# Verify
+curl http://localhost:8000/db-health
+```
+
+---
+
+*Session log เพิ่มเมื่อ: August 2026*
+

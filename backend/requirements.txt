@@ -16,3 +16,5 @@ ngboost>=0.5.1
 xgboost>=2.0.0
 torch>=2.0.0
 pandas>=2.0.0
+resend
+slowapi

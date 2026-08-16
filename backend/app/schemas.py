@@ -197,3 +197,11 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class FeedbackCreate(BaseModel):
+    """Schema for creating a new feedback."""
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(..., min_length=1, max_length=100)
+    subject: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=10)

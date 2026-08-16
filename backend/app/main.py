@@ -6,8 +6,11 @@ import logging
 from sqlalchemy import text
 
 from app.database import engine, Base
-from app.routes import predict, history
+from app.routes import predict, history, contact
 from app.routes import auth
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +24,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Set up rate limiter state
+app.state.limiter = contact.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware configuration
 app.add_middleware(
@@ -44,6 +51,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(predict.router)
 app.include_router(history.router)
+app.include_router(contact.router)
 
 
 # HTTPException handler — pass through as-is (401, 403, 404, etc.)

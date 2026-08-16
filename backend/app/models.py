@@ -67,3 +67,16 @@ class Prediction(Base):
         CheckConstraint('probability BETWEEN 0 AND 1', name='check_probability'),
         CheckConstraint("result IN ('Risk', 'No Risk')", name='check_result'),
     )
+
+
+class Feedback(Base):
+    """Database model for contact form feedbacks."""
+    __tablename__ = "feedbacks"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), nullable=False)
+    subject = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    email_status = Column(String(20), default="pending", nullable=False)  # pending, sent, failed
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)

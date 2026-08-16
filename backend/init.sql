@@ -17,7 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (username, hashed_password, is_active) VALUES
     ('admin',     '$2b$12$APsnTGopfS2VTwsvw6aZ8e2Zl76dvEGZ3NP2oILt1i6qFqHUnjP0G', TRUE),
     ('doctor',    '$2b$12$gXFR3XhhRR34rSXCzONJBOdF2L8mOpysdTuCdNRYxcyfh8w6grXj2', TRUE),
-    ('doctor_01', '$2b$12$KVLv5.4dL12u7JopAMAdU.kqd5huOHAsjgt2cCuTO66MtxqDyIV5y', TRUE)
+    ('doctor_01', '$2b$12$KVLv5.4dL12u7JopAMAdU.kqd5huOHAsjgt2cCuTO66MtxqDyIV5y', TRUE),
+    ('Doctor_A',  '$2b$12$Jk2hvD/DNrGimScCbw5yOu6QzDxEQUV42Gfvo.G3K7IZuXsZwR29C', TRUE),
+    ('Doctor_B',  '$2b$12$T6TqgN1HIc5ppbwQ2uvYRunHbK2/tB3kJGwNBUGpN18DQ.CyUCL4y', TRUE),
+    ('Doctor_C',  '$2b$12$z5B8dssmpKMI8PMn0czoNOEueve29tgzoSnzfmiNSBDc.dkPCPC/.', TRUE)
 ON CONFLICT (username) DO NOTHING;
 
 -- Create predictions table

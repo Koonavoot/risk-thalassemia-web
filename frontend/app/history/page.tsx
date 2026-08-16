@@ -332,7 +332,6 @@ export default function HistoryPage() {
                             return (
                               <div key={model.model_name} className={`rounded-xl border p-4 ${isRisk ? "border-red-200 bg-red-50/70" : "border-emerald-200 bg-emerald-50/70"}`}>
                                 <div className="flex items-center gap-1.5 mb-2">
-                                  <span className="text-base">{MODEL_ICONS[model.model_name] || "🤖"}</span>
                                   <span className="text-xs font-semibold text-navy-800 truncate">{model.model_name}</span>
                                 </div>
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${isRisk ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{model.result}</span>
@@ -340,7 +339,7 @@ export default function HistoryPage() {
                                 <div className="mt-1 w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                   <div className={`h-full rounded-full ${isRisk ? "bg-gradient-to-r from-red-400 to-red-500" : "bg-gradient-to-r from-emerald-400 to-emerald-500"}`} style={{ width: `${model.probability_percent}%` }} />
                                 </div>
-                                <div className="mt-1 text-[10px] text-slate-400">Threshold: {(model.threshold_used * 100).toFixed(0)}%</div>
+
                               </div>
                             );
                           })}

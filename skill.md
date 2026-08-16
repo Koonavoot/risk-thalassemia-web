@@ -781,12 +781,20 @@ Login ไม่ได้บน production — Frontend แสดง "Incorrect u
 
 #### Root Cause
 
-**การ mount ไฟล์ `pg_hba.conf` และ `postgresql.conf` เข้า container ขัดแย้งกับ Docker entrypoint script ของ `postgres:15-alpine`**
+**ภาค 1: การ mount ไฟล์ `pg_hba.conf` และ `postgresql.conf` เข้า container ขัดแย้งกับ Docker entrypoint script ของ `postgres:15-alpine`**
 
 เมื่อ container restart:
 1. Entrypoint script ตรวจสอบ PGDATA → เห็นว่ามีข้อมูลแล้ว → ข้าม initdb
-2. แต่ entrypoint ยัง ALTER ROLE หรือ reset config บาง settings
-3. Custom pg_hba.conf ถูก mount ทับ → config ชนกัน → postgres role ถูก lock
+2. แต่การ mount ไฟล์ custom ทับทำให้เกิด permission issues หรือการอ่านค่าผิดพลาด
+3. ส่งผลให้การเชื่อมต่อ Local Socket ภายในล้มเหลว หรือถูกปฏิเสธ
+
+**ภาค 2: Docker Volume จำประวัติเก่าที่ผิดปกติ (สาเหตุที่แก้โค้ดแล้วทีแรกยังพัง)**
+
+1. ในอดีต Database ถูกสร้างและเข้ารหัส Password แบบ `scram-sha-256` (ตาม Default ของ PostgreSQL 15)
+2. เมื่อเราแก้ `docker-compose.yml` ใหม่ บังคับใช้ `POSTGRES_HOST_AUTH_METHOD: md5` และ `password_encryption=md5`
+3. พอ Restart Container ตัว Entrypoint พยายามเชื่อมต่อและตรวจสอบ Password 
+4. แต่รหัสผ่านใน Volume ดั้งเดิมเป็นแบบเก่า (SCRAM) ทำให้การเชื่อมต่อภายในล้มเหลว (Authentication failed)
+5. ส่งผลให้ระบบป้องกันตัวเองด้วยการ Lock Role `postgres` (ตั้งค่า `rolcanlogin = false` หรือ NOLOGIN) ทุกครั้งที่ถูก Restart
 
 #### สิ่งที่แก้ไข
 
@@ -799,6 +807,18 @@ Login ไม่ได้บน production — Frontend แสดง "Incorrect u
 | `backend/app/database.py` | เพิ่ม connection pool limits (pool_size=3, max_overflow=5) |
 | `frontend/app/login/page.tsx` | แก้ error handling ให้แยก 500/503 ออกจาก 401 |
 | `deployment.md` | เพิ่มคำเตือนและ troubleshooting steps |
+
+#### บทสรุป: อันไหนทำแล้ว Work / ไม่ Work
+
+❌ **สิ่งที่ทำแล้วไม่ Work (แก้ไม่ขาด):**
+- **การเข้าไปใช้สคริปต์แก้สิทธิ์ (Emergency Fix):** รัน `ALTER ROLE postgres WITH LOGIN;` ใน Container ด้วย `su-exec` ช่วยให้ใช้งานได้ชั่วคราว **แต่มันจะกลับมาพัง (ถูก Lock) อีกครั้ง** ทันทีที่มีการ Restart Container หรือ Container หยุดทำงานกะทันหัน
+- **การแก้แค่ `docker-compose.yml` เพียงอย่างเดียว:** การอัปเดต Config โค้ดเพียงอย่างเดียว **ยังไม่พอ** เพราะข้อมูลและ Config เก่าที่ถูกจำไว้ใน Docker Volume (`postgres_data`) ยังเป็นของเดิมที่มีปัญหา
+
+✅ **สิ่งที่ทำแล้ว Work (แก้ถาวร 100%):**
+การแก้แบบถอนรากถอนโคน ต้องประกอบไปด้วย **การแก้โค้ด + การล้าง Volume**:
+1. ลบ Container และ **ล้าง Volume เก่าทิ้ง** ทั้งหมด (`docker compose down -v`)
+2. เริ่มรันใหม่ด้วย Config ตัวล่าสุด (`docker compose up -d`)
+3. ตอนนี้ PostgreSQL จะสร้างฐานข้อมูลใหม่ตั้งแต่ศูนย์ (InitDB) ด้วยกฎ MD5 ล้วนๆ ทำให้รหัสผ่านและการตรวจสอบสิทธิ์ตรงกัน 100% ไม่มีปัญหา NOLOGIN อีกต่อไปแม้จะโดน Restart เป็นสิบๆ รอบ
 
 #### ❌ Anti-Pattern: อย่า mount custom pg_hba.conf/postgresql.conf เข้า PostgreSQL Docker container
 
@@ -862,3 +882,36 @@ curl http://localhost:8000/db-health
 
 *Session log เพิ่มเมื่อ: August 2026*
 
+---
+
+### Session: August 2026 (3) — Contact Form Integration & Rate Limiting
+
+#### สรุปสิ่งที่ทำในเซสชันนี้
+
+- สร้างตาราง `feedbacks` สำหรับเก็บข้อมูลคำติชมที่ส่งมาจากหน้า Contact
+- ติดตั้งและตั้งค่า **Resend API** ส่งอีเมลหาผู้ดูแลระบบ (Admin) ทุกครั้งที่มีคนส่ง Feedback
+- ติดตั้ง **SlowAPI** เพื่อทำ Rate Limit ให้กับระบบ (1 IP ส่งได้ 5 ครั้ง / 10 นาที) เพื่อป้องกัน Spam
+- สร้าง UI ในหน้า Frontend รองรับ Loading State และ Error State กรณีโดน Rate Limit
+
+#### 💡 บทเรียนที่ได้ (Lessons Learned)
+
+**1. ✅ การแยกสถานะอีเมล (Email Status) ใน Database**
+การเพิ่ม `email_status` (pending, sent, failed) ลงใน `Feedback` model ถือเป็น Best Practice ทำให้เราทราบได้ว่าข้อมูลไหนส่งเมลสำเร็จ และข้อมูลไหนล้มเหลว (ช่วยในการทำ Retry ในอนาคต)
+
+**2. ✅ การรับมือกับ Spam ด้วย Rate Limit**
+การใช้ `slowapi` ช่วยปกป้อง Endpoint สาธารณะ (Public Endpoint) อย่างหน้า Contact ไม่ให้ถูกบอทสแปมข้อความใส่ได้ง่าย ๆ:
+```python
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+@limiter.limit("5/10minutes")
+def submit_contact_form(request: Request, ...):
+```
+
+**3. ✅ การจัดการ Environment Variable สำหรับ API Key**
+การจัดการ API Key อย่าง `RESEND_API_KEY` ควรฝังไว้ใน `.env` ของ Server / VPS เสมอ และไม่ฝังลงไปใน Code โดยตรง เพื่อป้องกันความเสี่ยงที่ GitHub จะตรวจเจอ Secret Scanning และถูก Block Push
+
+---
+
+*Session log เพิ่มเมื่อ: August 2026*

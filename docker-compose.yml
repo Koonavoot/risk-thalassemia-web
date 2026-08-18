@@ -55,6 +55,7 @@ services:
       SECRET_KEY: "change-this-to-a-random-secret-key-on-production"
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 480
+      LOGTAIL_SOURCE_TOKEN: ${LOGTAIL_SOURCE_TOKEN}
       # Limit PyTorch threads to reduce memory usage
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"

@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException, RequestValidationError
-import logging
 from sqlalchemy import text
 
 from app.database import engine, Base
@@ -12,9 +11,20 @@ from app.routes import auth
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+import os
+import logging
+from logtail import LogtailHandler
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger() # Capture all logs
+
+# Add BetterStack Logtail handler if token is provided
+logtail_token = os.getenv("LOGTAIL_SOURCE_TOKEN")
+if logtail_token:
+    handler = LogtailHandler(source_token=logtail_token)
+    logger.addHandler(handler)
+    logger.info("BetterStack Logtail logging initialized successfully.")
 
 # Create FastAPI application
 app = FastAPI(

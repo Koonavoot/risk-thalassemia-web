@@ -3,7 +3,7 @@ Authentication routes: login, get current user.
 """
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -16,19 +16,22 @@ from app.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
 
+from app.routes.contact import limiter
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_db)):
     """
     Authenticate user and return a JWT access token.
 
     - **username**: user's username
     - **password**: plain-text password
     """
-    user = db.query(User).filter(User.username == request.username).first()
-    if not user or not verify_password(request.password, user.hashed_password):
+    user = db.query(User).filter(User.username == login_data.username).first()
+    if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

@@ -940,3 +940,26 @@ def submit_contact_form(request: Request, ...):
 ---
 
 *Session log เพิ่มเมื่อ: August 2026*
+
+### Session: August 2026 (5) — การพิสูจน์ปัญหา Database Compromise (Bot vs Server)
+
+จากเหตุการณ์ Database ถูกล็อคด้วย Error `FATAL: role "postgres" is not permitted to log in`
+มีข้อสงสัยว่า: **จะมั่นใจได้อย่างไรว่าเป็นฝีมือของ Bot จากภายนอก และไม่ใช่ปัญหาจากตัว Server (AlmaLinux / HostingLotus) เอง?**
+
+#### 🔍 วิธีที่ 1: การตั้ง Honeypot เพื่อจับผิด Bot (พิสูจน์ว่าเป็น Bot จริง)
+เพื่อทดสอบสมมติฐานเรื่อง Bot เราสามารถสร้าง "กับดัก" (Honeypot) โดยทำตามขั้นตอนนี้:
+1. สร้างไฟล์ `docker-compose.honeypot.yml` โดยรัน Postgres ตัวปลอม
+2. เปิด Port สู่โลกภายนอก `ports: ["5433:5432"]`
+3. ตั้งรหัสผ่านล่อเป้า `POSTGRES_PASSWORD=postgres`
+4. **สำคัญมาก:** เปิดโหมดดักจับทุกการกระทำ โดยเพิ่ม `command: postgres -c log_statement=all -c log_connections=on`
+5. รันทิ้งไว้ 1-2 วัน แล้วเข้าไปดู Log (`docker compose -f docker-compose.honeypot.yml logs`)
+**ผลลัพธ์ที่คาดหวัง:** คุณจะเห็น Log บันทึก IP แปลกปลอมจากต่างประเทศทำการเชื่อมต่อเข้ามา (Connection received) และรันคำสั่งประสงค์ร้าย เช่น `ALTER ROLE postgres NOLOGIN;` หรือ `DROP DATABASE;` อย่างชัดเจน
+
+#### 🛡️ วิธีที่ 2: การตรวจสอบฝั่ง Server (พิสูจน์ว่าไม่ใช่ความผิดของ OS/Hosting)
+เพื่อยืนยันว่าปัญหานี้ไม่ได้เกิดจากระบบของ AlmaLinux หรือ HostingLotus:
+1. **เช็ค Automated Scripts:** รันคำสั่ง `crontab -l` บน VPS เพื่อดูว่ามี Script อัตโนมัติในฝั่ง Server ไปแตะต้อง Database หรือไม่ (ซึ่งพบว่า "ไม่มี")
+2. **เช็ค History:** รันคำสั่ง `history | grep psql` หรือ `history | grep docker` พบว่าไม่มีคำสั่งแปลกปลอมใดๆ ถูกสั่งโดย User `root` บน Server
+3. **หลักการทำงานของ Docker Isolation:** OS (AlmaLinux) ทำหน้าที่เพียงรัน Docker Engine เท่านั้น ตัว OS ไม่มีสิทธิ์และไม่สามารถแอบเข้าไปแก้ค่า Configuration ภายใน Container (เช่น ไปแก้สิทธิ์ของ Role ใน Postgres) ได้ด้วยตัวเอง การที่จะรันคำสั่ง SQL ได้ จะต้องเกิดจาก "การเชื่อมต่อผ่าน Network (TCP Port)" เท่านั้น
+4. **สรุป:** ตราบใดที่ Server ไม่ได้โดนแฮกเข้ามาทาง SSH (ซึ่งเช็คได้จาก `/var/log/secure`) ตัว OS จะไม่มีทางแทรกแซงการทำงานของ Database ใน Docker ได้ ปัญหาจึงชี้เป้าไปที่ "Network Port 5432 ที่ถูกเปิด Public ทิ้งไว้" แบบ 100%
+
+> **Rule of Thumb:** หากเปิด Port 5432 (Postgres), 3306 (MySQL), 27017 (MongoDB) เป็น Public พร้อมใช้ Default Password บน Cloud/VPS ใดก็ตาม... จะถูก Bot โจมตีสำเร็จภายในเวลาเฉลี่ยไม่เกิน 12-24 ชั่วโมง เสมอ

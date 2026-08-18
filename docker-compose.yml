@@ -22,12 +22,10 @@ services:
       -c password_encryption=md5
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: thala_SECURE_db_2026!X
       POSTGRES_DB: thalassemia_db
       POSTGRES_HOST_AUTH_METHOD: md5
       POSTGRES_INITDB_ARGS: "--auth-host=md5 --auth-local=trust"
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -51,7 +49,7 @@ services:
     container_name: thalassemia_backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/thalassemia_db
+      DATABASE_URL: postgresql://postgres:thala_SECURE_db_2026!X@db:5432/thalassemia_db
       MODEL_PATH: model/Meta_Tabular_final.pt
       MODEL_ARTIFACTS_PATH: model
       SECRET_KEY: "change-this-to-a-random-secret-key-on-production"

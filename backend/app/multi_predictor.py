@@ -502,8 +502,21 @@ class MultiModelPredictor:
             cat_encoded.append(enc.transform([blood["cat"][col]])[0])
         cat_array = np.array([cat_encoded], dtype=float)
 
-        return np.concatenate([num_scaled, cat_array], axis=1)
+        # Tree models expect a specific column order:
+        # [Mother DCIP, Mother nums (4), Father DCIP, Father nums (4)]
+        tree_features = np.zeros((1, 10), dtype=float)
+        
+        # Mother DCIP
+        tree_features[0, 0] = cat_encoded[0]
+        # Mother nums (Hb, Hct, MCH, MCV)
+        tree_features[0, 1:5] = num_scaled[0, 0:4]
+        
+        # Father DCIP
+        tree_features[0, 5] = cat_encoded[1]
+        # Father nums (Hb, Hct, MCH, MCV)
+        tree_features[0, 6:10] = num_scaled[0, 4:8]
 
+        return tree_features
     def _prepare_transformer_features(self, blood: dict) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare features for transformer models.
 
